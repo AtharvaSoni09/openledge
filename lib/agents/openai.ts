@@ -65,8 +65,8 @@ export async function synthesizeLegislation(
     Context provided:
     - Summary snippet: ${fullText.slice(0, 2000)}
     - Sponsor: ${safeStringify(sponsorInfo).slice(0, 5000)}
-    - News: ${safeStringify(newsContext).slice(0, 20000)}
-    - Research: ${safeStringify(policyResearch).slice(0, 30000)}
+    - News: ${safeStringify(newsContext).slice(0, 10000)}
+    - Research: ${safeStringify(policyResearch).slice(0, 10000)}
     
     Return a detailed JSON article.
   `;

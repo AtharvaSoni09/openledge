@@ -23,9 +23,10 @@ export async function GET(req: NextRequest) {
 
     try {
         // 2. SMART SELECTION LOGIC
-        // Step A: Priority Sweep (Check the 100 most recent bills for today's news)
-        console.log("Stage 2: Priority Sweep (Checking 100 most recent)...");
-        let bills = await fetchRecentBills(100, 0);
+        // Step A: Priority Sweep (Check the 30 most recent bills for today's news)
+        // Reduced from 100 to 30 to speed up API response on Vercel
+        console.log("Stage 2: Priority Sweep (Checking 30 most recent)...");
+        let bills = await fetchRecentBills(30, 0);
 
         // Step B: Contingency Check
         // We look for bills we haven't done yet in the top 100.
@@ -93,14 +94,20 @@ export async function GET(req: NextRequest) {
             ]);
 
             // 5. Synthesis Phase
-            const article = await synthesizeLegislation(
-                bill.title,
-                bill.title,
-                sponsorFunds,
-                newsContext,
-                policyResearch,
-                bill.congressGovUrl
-            );
+            // Wrap in a timeout helper to prevent hanging Vercel
+            const timeout = (ms: number) => new Promise((_, reject) => setTimeout(() => reject(new Error("Synthesis Timeout")), ms));
+
+            const article = await Promise.race([
+                synthesizeLegislation(
+                    bill.title,
+                    bill.title,
+                    sponsorFunds,
+                    newsContext,
+                    policyResearch,
+                    bill.congressGovUrl
+                ),
+                timeout(200000) // 200s limit per bill to keep total under 300s
+            ]) as any;
 
             if (!article) {
                 console.error(`Failed synthesis for ${bill.bill_id}`);
