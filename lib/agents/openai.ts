@@ -93,9 +93,25 @@ export async function synthesizeLegislation(
         }
 
         try {
-            const parsed = JSON.parse(content);
-            console.log("SYNTHESIS SUCCESS: Content parsed successfully.");
-            return parsed as ResearchOutput;
+            const parsed = JSON.parse(content) as ResearchOutput;
+
+            // VALIDATION: Ensure all fields are present and substantial
+            const requiredFields = ['seo_title', 'url_slug', 'meta_description', 'tldr', 'markdown_body'];
+            const missingFields = requiredFields.filter(f => !parsed[f as keyof ResearchOutput]);
+
+            if (missingFields.length > 0) {
+                console.error(`SYNTHESIS VALIDATION FAILED: Missing fields [${missingFields.join(', ')}]`);
+                return null;
+            }
+
+            // Ensure the main article isn't too short (indicates a fail or cut-off)
+            if (parsed.markdown_body.length < 500) {
+                console.error(`SYNTHESIS VALIDATION FAILED: markdown_body too short (${parsed.markdown_body.length} chars)`);
+                return null;
+            }
+
+            console.log("SYNTHESIS SUCCESS: Content parsed and validated.");
+            return parsed;
         } catch (parseError: any) {
             console.error("SYNTHESIS ERROR: JSON Parse failed:", parseError.message);
             console.error("Raw Content:", content);
