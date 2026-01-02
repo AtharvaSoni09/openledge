@@ -1,0 +1,24 @@
+name: Daily Law Automation
+
+on:
+  schedule:
+    # 05:00 UTC = 12:00 AM EST (Standard Time)
+    - cron: '0 5 * * *'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  trigger-agent:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call Daily Bill Agent
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          # Assuming you deploy to Vercel, replace with your production URL
+          # If purely local/action based, we'd run the script here. 
+          # User asked to "hit this endpoint", implying a deployed Next.js app.
+          DEPLOY_URL: ${{ secrets.DEPLOY_URL }} 
+        run: |
+          echo "Triggering The Daily Law Agent..."
+          curl -X GET "$DEPLOY_URL/api/cron/daily-bill" \
+          -H "Authorization: Bearer $CRON_SECRET" \
+          --fail

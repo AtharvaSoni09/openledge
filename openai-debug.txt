@@ -1,0 +1,33 @@
+
+=== OpenAI Error Log ===
+Time: 2026-01-02T04:00:01.595Z
+Message: 400 This model's maximum context length is 128000 tokens. However, your messages resulted in 148742 tokens. Please reduce the length of the messages.
+Stack: Error: 400 This model's maximum context length is 128000 tokens. However, your messages resulted in 148742 tokens. Please reduce the length of the messages.
+    at APIError.generate (C:\leg\.next\dev\server\chunks\node_modules_openai_f417a314._.js:158:20)
+    at OpenAI.makeStatusError (C:\leg\.next\dev\server\chunks\node_modules_openai_f417a314._.js:8988:167)
+    at OpenAI.makeRequest (C:\leg\.next\dev\server\chunks\node_modules_openai_f417a314._.js:9159:30)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async synthesizeLegislation (C:\leg\.next\dev\server\chunks\[root-of-the-server]__88b02568._.js:286:28)
+    at async GET (C:\leg\.next\dev\server\chunks\[root-of-the-server]__88b02568._.js:407:25)
+    at async AppRouteRouteModule.do (C:\leg\node_modules\next\dist\compiled\next-server\app-route-turbo.runtime.dev.js:5:37866)
+    at async AppRouteRouteModule.handle (C:\leg\node_modules\next\dist\compiled\next-server\app-route-turbo.runtime.dev.js:5:45156)
+    at async responseGenerator (C:\leg\.next\dev\server\chunks\node_modules_next_d9294758._.js:14843:38)
+    at async AppRouteRouteModule.handleResponse (C:\leg\node_modules\next\dist\compiled\next-server\app-route-turbo.runtime.dev.js:1:187713)
+    at async handleResponse (C:\leg\.next\dev\server\chunks\node_modules_next_d9294758._.js:14906:32)
+    at async Module.handler (C:\leg\.next\dev\server\chunks\node_modules_next_d9294758._.js:14959:13)
+    at async DevServer.renderToResponseWithComponentsImpl (C:\leg\node_modules\next\dist\server\base-server.js:1422:9)
+    at async DevServer.renderPageComponent (C:\leg\node_modules\next\dist\server\base-server.js:1474:24)
+    at async DevServer.renderToResponseImpl (C:\leg\node_modules\next\dist\server\base-server.js:1524:32)
+    at async DevServer.pipeImpl (C:\leg\node_modules\next\dist\server\base-server.js:1018:25)
+    at async NextNodeServer.handleCatchallRenderRequest (C:\leg\node_modules\next\dist\server\next-server.js:395:17)
+    at async DevServer.handleRequestImpl (C:\leg\node_modules\next\dist\server\base-server.js:909:17)
+    at async C:\leg\node_modules\next\dist\server\dev\next-dev-server.js:387:20
+    at async Span.traceAsyncFn (C:\leg\node_modules\next\dist\trace\trace.js:157:20)
+    at async DevServer.handleRequest (C:\leg\node_modules\next\dist\server\dev\next-dev-server.js:383:24)
+    at async invokeRender (C:\leg\node_modules\next\dist\server\lib\router-server.js:248:21)
+    at async handleRequest (C:\leg\node_modules\next\dist\server\lib\router-server.js:447:24)
+    at async requestHandlerImpl (C:\leg\node_modules\next\dist\server\lib\router-server.js:496:13)
+    at async Server.requestListener (C:\leg\node_modules\next\dist\server\lib\start-server.js:226:13)
+User Prompt Length: 558762
+Response Data: N/A
+========================

@@ -1,0 +1,3 @@
+STATUS: 200
+
+{"success":true,"result":{"title":"Understanding JSON","summary":"JSON (JavaScript Object Notation) is a lightweight data interchange format that is easy for humans to read and write and easy for machines to parse and generate. It is widely used for transmitting data in web applications between a server and a client."}}
