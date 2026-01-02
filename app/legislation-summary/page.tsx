@@ -12,9 +12,9 @@ export default async function LegislationSummary() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const allBills = (bills as any[]) || [];
 
-    // Find the featured bill (Domestic Workers Bill of Rights Act)
-    const featuredBill = allBills.find(b => b.title.includes("Domestic Workers Bill of Rights Act"));
-    const otherBills = featuredBill ? allBills.filter(b => b.id !== featuredBill.id) : allBills;
+    // Feature the most recently published bill automatically
+    const featuredBill = allBills[0];
+    const otherBills = allBills.slice(1);
 
     if (error) {
         console.error("Supabase Error:", error);
