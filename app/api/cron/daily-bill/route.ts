@@ -141,10 +141,12 @@ export async function GET(req: NextRequest) {
             } else {
                 processedBills.push(bill.bill_id);
 
-                // --- PERMANENT FIX: STOP ONCE WE HAVE OUR NEW DAILY ARTICLE ---
-                // We only want to post 1 fresh investigation per day to keep things "The Daily Law"
-                console.log(`SUCCESS: Published ${bill.bill_id}. Stopping cron job.`);
-                break;
+                // --- MULTI-VETERAN REGENERATION: Process up to 3 per run ---
+                console.log(`SUCCESS: Published ${bill.bill_id}.`);
+                if (processedBills.length >= 3) {
+                    console.log("Batch limit reached (3). Stopping session.");
+                    break;
+                }
             }
         }
 
