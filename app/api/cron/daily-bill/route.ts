@@ -94,8 +94,9 @@ export async function GET(req: NextRequest) {
             ]);
 
             // 5. Synthesis Phase
-            // Wrap in a timeout helper to prevent hanging Vercel
-            const timeout = (ms: number) => new Promise((_, reject) => setTimeout(() => reject(new Error("Synthesis Timeout")), ms));
+            // Wrap in a timeout helper that resolves to null
+            // This prevents a single slow bill from crashing the whole cron job
+            const timeout = (ms: number) => new Promise((resolve) => setTimeout(() => resolve(null), ms));
 
             const article = await Promise.race([
                 synthesizeLegislation(
@@ -106,7 +107,7 @@ export async function GET(req: NextRequest) {
                     policyResearch,
                     bill.congressGovUrl
                 ),
-                timeout(200000) // 200s limit per bill to keep total under 300s
+                timeout(80000) // 80s limit per bill to keep 3-bill batch under 300s
             ]) as any;
 
             if (!article) {
