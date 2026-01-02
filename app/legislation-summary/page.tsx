@@ -1,8 +1,8 @@
-
 import { supabasePublic } from '@/lib/supabase';
 import { BillCard } from '@/components/legislation/BillCard';
+import { formatDate } from '@/lib/date-utils';
 
-export const revalidate = 3600; // Revalidate every hour
+export const dynamic = 'force-dynamic';
 
 export default async function LegislationSummary() {
     const { data: bills, error } = await supabasePublic
@@ -75,7 +75,7 @@ export default async function LegislationSummary() {
                         bill_id={bill.bill_id}
                         title={bill.title}
                         summary={bill.tldr || "No summary available."}
-                        date={bill.created_at}
+                        date={formatDate(bill.created_at)}
                     />
                 ))}
 

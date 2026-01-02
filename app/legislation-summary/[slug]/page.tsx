@@ -6,10 +6,11 @@ import { Metadata } from 'next';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { ExternalLink, DollarSign, Newspaper, BookOpen, Scale } from 'lucide-react';
+import { ExternalLink, BookOpen, Scale } from 'lucide-react';
+import { formatDate } from '@/lib/date-utils';
 
 // Force dynamic rendering for these pages
-export const revalidate = 3600;
+export const dynamic = 'force-dynamic';
 
 interface PageProps {
     params: Promise<{ slug: string }>
@@ -85,7 +86,7 @@ export default async function BillPage({ params }: PageProps) {
                             {bill.title}
                         </h1>
                         <div className="flex items-center text-zinc-500 font-sans text-sm italic">
-                            <span className="mr-4">Published {new Date(bill.created_at).toLocaleDateString()}</span>
+                            <span className="mr-4">Published {formatDate(bill.created_at)}</span>
                             {bill.sponsor && <span>Sponsored by <span className="font-semibold text-zinc-700">{bill.sponsor}</span></span>}
                         </div>
                     </header>
