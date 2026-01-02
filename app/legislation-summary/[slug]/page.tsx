@@ -51,7 +51,7 @@ export default async function BillPage({ params }: PageProps) {
 
     // Parse JSON columns safely
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const funds = (bill.sponsor_funds as any) || {};
+    const funds = (bill.sponsor_data as any) || {};
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const news = (bill.news_context as any[]) || [];
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
