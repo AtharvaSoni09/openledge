@@ -76,7 +76,7 @@ export async function fetchRecentBills(limit: number = 5, offset: number = 0): P
                     updateDate: rawBill.updateDate,
                     url: rawBill.url,
                     congressGovUrl: generateCongressGovUrl(rawBill.congress, rawBill.type, rawBill.number),
-                    introducedDate: fullBill.introducedDate,
+                    introducedDate: fullBill.introducedDate || rawBill.introducedDate,
                     latestAction: fullBill.latestAction,
                     sponsors: fullBill.sponsors?.map((s: any) => ({
                         name: s.fullName,
