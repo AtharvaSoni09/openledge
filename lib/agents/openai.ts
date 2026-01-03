@@ -30,17 +30,14 @@ function repairJson(content: string): string {
         // Fix 1: Handle truncated responses (missing closing brace/quote)
         if (!repaired.trim().endsWith('}')) {
             console.log("SYNTHESIS: Fixing truncated JSON");
-            // Count opening vs closing braces
             const openBraces = (repaired.match(/\{/g) || []).length;
             const closeBraces = (repaired.match(/\}/g) || []).length;
             const missingBraces = openBraces - closeBraces;
             
-            // Add missing closing braces
             for (let i = 0; i < missingBraces; i++) {
                 repaired += '}';
             }
             
-            // Check if last field is incomplete (missing closing quote)
             const lastQuoteIndex = repaired.lastIndexOf('"');
             const secondLastQuoteIndex = repaired.lastIndexOf('"', lastQuoteIndex - 1);
             
@@ -49,100 +46,84 @@ function repairJson(content: string): string {
             }
         }
         
-        // Fix 2: Handle case where markdown_body gets split into multiple keys
-        if (repaired.includes('"markdown_body"')) {
-            const bodyStart = repaired.indexOf('"markdown_body"');
-            const afterBodyStart = repaired.indexOf(':', bodyStart) + 1;
-            const bodyValueStart = repaired.indexOf('"', afterBodyStart) + 1;
-            
-            // Find the end by looking for the closing quote that's followed by comma or }
-            let bodyValueEnd = -1;
-            let searchStart = bodyValueStart;
-            
-            while (searchStart < repaired.length) {
-                const nextQuote = repaired.indexOf('"', searchStart + 1);
-                if (nextQuote === -1) break;
-                
-                const afterQuote = repaired.substring(nextQuote + 1);
-                if (afterQuote.startsWith(',') || afterQuote.startsWith('}') || afterQuote.trim().startsWith('}')) {
-                    bodyValueEnd = nextQuote;
-                    break;
-                }
-                searchStart = nextQuote;
-            }
-            
-            // Fallback: use last quote if we didn't find a proper end
-            if (bodyValueEnd === -1) {
-                bodyValueEnd = repaired.lastIndexOf('"');
-            }
-            
-            if (bodyValueStart > 0 && bodyValueEnd > bodyValueStart) {
-                let bodyContent = repaired.substring(bodyValueStart, bodyValueEnd);
-                
-                // Remove any malformed key-value pairs within the body content
-                // This handles cases where GPT splits content like: "text": "value", "next key": "more text"
-                bodyContent = bodyContent
-                    .replace(/",\s*"[^"]+":\s*"[^"]*"/g, ' ')  // Remove "key": "value" patterns
-                    .replace(/",\s*"[^"]+":\s*""/g, ' ')      // Remove "key": "" patterns  
-                    .replace(/\n\s*"[^"]+":\s*"[^"]*"/g, ' ')    // Remove line-broken patterns
-                    .replace(/\\u[0-9a-fA-F]{4}/g, '')           // Remove unicode artifacts
-                    .replace(/\s+/g, ' ')                           // Normalize whitespace
-                    .trim();
-                
-                // Rebuild the JSON properly - merge all the split content back into one field
-                const beforeBody = repaired.substring(0, bodyStart);
-                const afterBody = repaired.substring(bodyValueEnd + 1);
-                
-                // Find where the split content starts (after the first part of markdown_body)
-                const splitPattern = /"[^"]*":\s*"/g;
-                const matches = repaired.match(splitPattern);
-                
-                if (matches && matches.length > 1) {
-                    // Extract all the content that should be part of markdown_body
-                    let fullBody = bodyContent;
-                    let remainingContent = repaired.substring(bodyValueEnd + 1);
-                    
-                    // Continue extracting content that belongs to markdown_body
-                    const contentPattern = /"[^"]*":\s*"([^"]*(?:\\.[^"]*)*)"/g;
-                    let contentMatch;
-                    
-                    while ((contentMatch = contentPattern.exec(remainingContent)) !== null) {
-                        // Skip the first match (that's our bodyContent), add subsequent ones
-                        if (contentMatch[1] && contentMatch[1].length > 10) { // Only add substantial content
-                            fullBody += ' ' + contentMatch[1];
-                        }
-                    }
-                    
-                    repaired = beforeBody + '"markdown_body": "' + fullBody.trim() + '"' + afterBody;
-                } else {
-                    repaired = beforeBody + '"markdown_body": "' + bodyContent + '"' + afterBody;
-                }
-            }
-        }
-        
-        // Fix 3: Handle incomplete JSON structure
+        // Fix 2: Completely rebuild JSON by extracting all content properly
         try {
             JSON.parse(repaired);
             return repaired;
         } catch (e2) {
-            console.log("SYNTHESIS: JSON still malformed, attempting more aggressive repair");
+            console.log("SYNTHESIS: JSON still malformed, rebuilding from scratch");
             
-            // Try to extract what we can and rebuild minimal valid JSON
+            // Extract all content using regex patterns that handle both strings and numbers
             const fields = ['seo_title', 'url_slug', 'meta_description', 'tldr', 'markdown_body', 'keywords', 'schema_type'];
             const extracted: any = {};
             
             for (const field of fields) {
-                const regex = new RegExp(`"${field}"\\s*:\\s*"([^"]*(?:\\.[^"]*)*)"`, 'i');
+                // Pattern that handles both "field": "value" and "field": value formats
+                const regex = new RegExp(`"${field}"\\s*:\\s*("([^"]*(?:\\.[^"]*)*)"|([^,}\\n]+))`, 'i');
                 const match = repaired.match(regex);
+                
                 if (match) {
-                    extracted[field] = match[1].replace(/\\"/g, '"');
+                    // Use the string value if available, otherwise use the raw value
+                    let value = match[2] || match[3] || '';
+                    
+                    // Clean up the value
+                    if (value) {
+                        value = value.replace(/\\"/g, '"').replace(/\\u[0-9a-fA-F]{4}/g, '').trim();
+                        
+                        // For keywords field, parse as array if it looks like one
+                        if (field === 'keywords' && value.startsWith('[')) {
+                            try {
+                                extracted[field] = JSON.parse(value);
+                            } catch {
+                                // If parsing fails, create array from comma-separated values
+                                extracted[field] = value.replace(/[\[\]]/g, '').split(',').map(v => v.trim().replace(/"/g, '')).filter(v => v);
+                            }
+                        } else {
+                            extracted[field] = value;
+                        }
+                    }
                 }
             }
             
-            // If we have the essential fields, rebuild JSON
+            // Special handling for markdown_body - merge all content that should be part of it
+            if (extracted.markdown_body && extracted.markdown_body.length < 200) {
+                console.log("SYNTHESIS: markdown_body too short, attempting to merge split content");
+                
+                // Find all content that looks like it should be part of the article body
+                const bodyPatterns = [
+                    /"([^"]{20,})":\s*([^,}\\n]+)/g,  // "long text": value
+                    /:\s*"([^"]{20,})"/g,             // : "long text"
+                ];
+                
+                let additionalContent = '';
+                
+                bodyPatterns.forEach(pattern => {
+                    let match;
+                    while ((match = pattern.exec(repaired)) !== null) {
+                        const content = match[1] || match[2];
+                        if (content && content.length > 20 && !content.includes('"markdown_body"')) {
+                            additionalContent += ' ' + content;
+                        }
+                    }
+                });
+                
+                if (additionalContent.length > 100) {
+                    extracted.markdown_body += additionalContent;
+                    console.log("SYNTHESIS: Merged additional content into markdown_body");
+                }
+            }
+            
+            // If we have the essential fields, rebuild JSON properly
             if (extracted.seo_title && extracted.url_slug && extracted.markdown_body) {
-                console.log("SYNTHESIS: Rebuilding JSON from extracted fields");
-                return JSON.stringify(extracted);
+                console.log("SYNTHESIS: Rebuilding JSON with extracted fields");
+                
+                // Ensure markdown_body is substantial
+                if (extracted.markdown_body.length < 200) {
+                    console.log("SYNTHESIS: markdown_body still too short after repair");
+                    return content; // Return original to fail validation
+                }
+                
+                return JSON.stringify(extracted, null, 2);
             }
         }
         
