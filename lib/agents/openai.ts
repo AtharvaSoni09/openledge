@@ -230,12 +230,15 @@ export async function synthesizeLegislation(
                     { role: "system", content: systemPrompt },
                     { role: "user", content: userPrompt }
                 ],
-                response_format: { type: "json_object" }
+                response_format: { type: "json_object" },
+                max_tokens: 4000, // Ensure enough tokens for complete response
+                temperature: 0.7
             });
         }, 3, 1000); // 3 retries, 1s base delay
 
         const content = completion.choices[0].message.content;
         console.log("SYNTHESIS: Received content. Length:", content?.length || 0);
+        console.log("SYNTHESIS DEBUG: Raw content preview:", content?.slice(0, 200) || "NONE");
 
         if (!content) {
             console.error("SYNTHESIS ERROR: No content in completion.");
