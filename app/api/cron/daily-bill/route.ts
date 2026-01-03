@@ -106,8 +106,14 @@ export async function GET(req: NextRequest) {
             // 5. Synthesis Phase
             // Wrap in a timeout helper that resolves to null
             // This prevents a single slow bill from crashing the whole cron job
-            const timeout = (ms: number) => new Promise((resolve) => setTimeout(() => resolve(null), ms));
+            const timeout = (ms: number) => new Promise((resolve) => {
+                setTimeout(() => {
+                    console.log(`SYNTHESIS TIMEOUT: ${bill.bill_id} timed out after ${ms}ms`);
+                    resolve(null);
+                }, ms);
+            });
 
+            console.log(`SYNTHESIS: Starting race for ${bill.bill_id}`);
             const article = await Promise.race([
                 synthesizeLegislation(
                     bill.title,
@@ -121,7 +127,7 @@ export async function GET(req: NextRequest) {
             ]) as any;
 
             if (!article) {
-                console.error(`Failed synthesis for ${bill.bill_id}`);
+                console.error(`Failed synthesis for ${bill.bill_id} (likely timeout or API error)`);
                 continue;
             }
 
@@ -170,13 +176,19 @@ export async function GET(req: NextRequest) {
 
         const duration = (Date.now() - startTime) / 1000;
         
-        // Revalidate sitemap cache after 2 minutes to allow jobs to finish
+        // Revalidate cache after 2 minutes to allow jobs to finish
         if (processedBills.length > 0) {
             setTimeout(() => {
                 try {
-                    revalidatePath('/sitemap.xml');
+                    // Revalidate homepage and legislation pages (sitemap will pick up changes)
                     revalidatePath('/');
-                    console.log("Sitemap and homepage cache invalidated");
+                    revalidatePath('/legislation-summary');
+                    // Also revalidate all individual article pages
+                    processedBills.forEach(billId => {
+                        const slug = billId.toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-');
+                        revalidatePath(`/legislation-summary/${slug}`);
+                    });
+                    console.log("Cache revalidated for homepage and legislation pages");
                 } catch (e) {
                     console.error("Failed to revalidate cache:", e);
                 }
