@@ -61,7 +61,7 @@ export async function synthesizeLegislation(
     
     FORMAT:
     Return a detailed JSON object with the fields:
-    - seo_title: Use format "[bill name] (HR XXX) explained: Who It Helps, Who Pays, and Why It Matters" - 80 chars max
+    - seo_title: Use format "[bill name] (bill number) explained: Who It Helps, Who Pays, and Why It Matters" - 80 chars max
     - url_slug: SEO friendly slug with bill number
     - meta_description: 150 chars max summary including bill number and key impact
     - tldr: A 2-3 sentence "Impact Statement" answering "Who benefits?" and "Why it matters?" (scholarly tone).
