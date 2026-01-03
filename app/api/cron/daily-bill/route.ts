@@ -6,6 +6,7 @@ import { fetchNewsContext } from '@/lib/agents/newsdata';
 import { fetchPolicyResearch } from '@/lib/agents/exa';
 import { synthesizeLegislation } from '@/lib/agents/openai';
 import { revalidatePath } from 'next/cache';
+import { generateSlug } from '@/lib/utils/slugs';
 
 export const dynamic = 'force-dynamic';
 
@@ -132,6 +133,9 @@ export async function GET(req: NextRequest) {
             }
 
             // 6. DB Storage - Using 'as any' to bypass Vercel strict build errors on table types
+            // Use standardized slug for consistency
+            const standardSlug = generateSlug(bill.bill_id);
+            
             const { error: insertError } = await (supabaseAdmin as any)
                 .from('legislation')
                 .insert({
@@ -147,7 +151,7 @@ export async function GET(req: NextRequest) {
                     cosponsors: JSON.parse(JSON.stringify(bill.cosponsors || [])),
                     cosponsors_funds: JSON.parse(JSON.stringify(cosponsorsFunds || [])),
                     seo_title: article.seo_title.slice(0, 255),
-                    url_slug: article.url_slug.slice(0, 255),
+                    url_slug: standardSlug, // Use standardized slug
                     meta_description: article.meta_description.slice(0, 255),
                     tldr: article.tldr.slice(0, 1000),
                     keywords: JSON.parse(JSON.stringify(article.keywords || [])),
@@ -183,9 +187,9 @@ export async function GET(req: NextRequest) {
                     // Revalidate homepage and legislation pages (sitemap will pick up changes)
                     revalidatePath('/');
                     revalidatePath('/legislation-summary');
-                    // Also revalidate all individual article pages
+                    // Also revalidate all individual article pages using standardized slugs
                     processedBills.forEach(billId => {
-                        const slug = billId.toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-');
+                        const slug = generateSlug(billId);
                         revalidatePath(`/legislation-summary/${slug}`);
                     });
                     console.log("Cache revalidated for homepage and legislation pages");

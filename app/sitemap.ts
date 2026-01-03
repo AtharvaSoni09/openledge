@@ -1,12 +1,14 @@
 import { supabasePublic } from '@/lib/supabase';
 import { MetadataRoute } from 'next';
 import { revalidatePath } from 'next/cache';
+import { generateSlug } from '@/lib/utils/slugs';
 
 // Enable ISR for sitemap (revalidate every 5 minutes)
 export const revalidate = 300;
 
 // Define TypeScript type for a row in your legislation table
 type Bill = {
+    bill_id: string;
     url_slug: string;
     created_at: string;
 };
@@ -15,7 +17,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // Fetch all legislation entries from Supabase
     const { data: bills } = await supabasePublic
         .from('legislation')
-        .select('url_slug, created_at');
+        .select('bill_id, url_slug, created_at');
 
     const staticUrls: MetadataRoute.Sitemap = [
         {
@@ -38,7 +40,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         },
     ];
 
-    // Map Supabase bills to sitemap URLs
+    // Map Supabase bills to sitemap URLs using standardized slugs
     const legislationUrls =
         (bills as Bill[])?.map((bill) => ({
             url: `https://thedailylaw.org/legislation-summary/${bill.url_slug}`,

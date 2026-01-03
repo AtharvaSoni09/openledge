@@ -52,6 +52,28 @@ function repairJson(content: string): string {
     }
 }
 
+// Helper function for retry logic with exponential backoff
+async function retryWithBackoff<T>(
+    fn: () => Promise<T>,
+    maxRetries: number = 3,
+    baseDelay: number = 1000
+): Promise<T> {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            return await fn();
+        } catch (error: any) {
+            if (attempt === maxRetries) {
+                throw error;
+            }
+            
+            const delay = baseDelay * Math.pow(2, attempt - 1);
+            console.log(`SYNTHESIS: Retry ${attempt}/${maxRetries} after ${delay}ms delay`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+        }
+    }
+    throw new Error('Max retries exceeded');
+}
+
 export async function synthesizeLegislation(
     billTitle: string,
     fullText: string,
@@ -122,14 +144,16 @@ export async function synthesizeLegislation(
         console.log("SYNTHESIS: Sending request to OpenAI (gpt-4o-mini)...");
         console.log("SYNTHESIS: User Prompt Length:", userPrompt.length);
 
-        const completion = await openai.chat.completions.create({
-            model: "gpt-4o-mini",
-            messages: [
-                { role: "system", content: systemPrompt },
-                { role: "user", content: userPrompt }
-            ],
-            response_format: { type: "json_object" }
-        });
+        const completion = await retryWithBackoff(async () => {
+            return await openai.chat.completions.create({
+                model: "gpt-4o-mini",
+                messages: [
+                    { role: "system", content: systemPrompt },
+                    { role: "user", content: userPrompt }
+                ],
+                response_format: { type: "json_object" }
+            });
+        }, 3, 1000); // 3 retries, 1s base delay
 
         const content = completion.choices[0].message.content;
         console.log("SYNTHESIS: Received content. Length:", content?.length || 0);
