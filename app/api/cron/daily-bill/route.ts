@@ -158,7 +158,7 @@ export async function GET(req: NextRequest) {
             } else {
                 processedBills.push(bill.bill_id);
 
-                // --- MULTI-VETERAN REGENERATION: Process up to 3 per run ---
+                // --- NORMAL OPERATION: Process up to 3 per run ---
                 console.log(`SUCCESS: Published ${bill.bill_id}.`);
                 if (processedBills.length >= 3) {
                     console.log("Batch limit reached (3). Stopping session.");
