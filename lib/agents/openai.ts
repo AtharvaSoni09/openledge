@@ -105,6 +105,10 @@ export async function synthesizeLegislation(
 
         try {
             const parsed = JSON.parse(content) as ResearchOutput;
+            
+            // DEBUG: Log the parsed markdown_body length and preview
+            console.log("SYNTHESIS DEBUG: markdown_body length:", parsed.markdown_body?.length || 0);
+            console.log("SYNTHESIS DEBUG: markdown_body preview:", parsed.markdown_body?.slice(0, 100) || "NONE");
 
             // VALIDATION: Ensure all fields are present and substantial
             const requiredFields = ['seo_title', 'url_slug', 'meta_description', 'tldr', 'markdown_body', 'keywords', 'schema_type'];
@@ -118,6 +122,7 @@ export async function synthesizeLegislation(
             // Ensure the main article isn't too short (indicates a fail or cut-off)
             if (parsed.markdown_body.length < 200) {
                 console.error(`SYNTHESIS VALIDATION FAILED: markdown_body too short (${parsed.markdown_body.length} chars)`);
+                console.error("SYNTHESIS DEBUG: Full parsed object:", JSON.stringify(parsed, null, 2));
                 return null;
             }
 
