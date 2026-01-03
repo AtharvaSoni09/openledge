@@ -25,26 +25,83 @@ function repairJson(content: string): string {
     } catch (e) {
         console.log("SYNTHESIS: Attempting to repair malformed JSON");
         
-        // Common GPT JSON issues and fixes
         let repaired = content;
         
-        // Fix case where markdown_body gets split into multiple keys
+        // Fix 1: Handle truncated responses (missing closing brace/quote)
+        if (!repaired.trim().endsWith('}')) {
+            console.log("SYNTHESIS: Fixing truncated JSON");
+            // Count opening vs closing braces
+            const openBraces = (repaired.match(/\{/g) || []).length;
+            const closeBraces = (repaired.match(/\}/g) || []).length;
+            const missingBraces = openBraces - closeBraces;
+            
+            // Add missing closing braces
+            for (let i = 0; i < missingBraces; i++) {
+                repaired += '}';
+            }
+            
+            // Check if last field is incomplete (missing closing quote)
+            const lastQuoteIndex = repaired.lastIndexOf('"');
+            const secondLastQuoteIndex = repaired.lastIndexOf('"', lastQuoteIndex - 1);
+            
+            if (lastQuoteIndex > secondLastQuoteIndex && !repaired.substring(lastQuoteIndex).includes('"')) {
+                repaired += '"';
+            }
+        }
+        
+        // Fix 2: Handle case where markdown_body gets split into multiple keys
         if (repaired.includes('"markdown_body"')) {
             const bodyStart = repaired.indexOf('"markdown_body"');
             const afterBodyStart = repaired.indexOf(':', bodyStart) + 1;
             const bodyValueStart = repaired.indexOf('"', afterBodyStart) + 1;
-            const bodyValueEnd = repaired.lastIndexOf('"');
+            let bodyValueEnd = repaired.lastIndexOf('"');
+            
+            // If the last quote is before the closing brace, find the actual end
+            const lastBraceIndex = repaired.lastIndexOf('}');
+            if (bodyValueEnd > lastBraceIndex) {
+                bodyValueEnd = repaired.substring(0, lastBraceIndex).lastIndexOf('"');
+            }
             
             if (bodyValueStart > 0 && bodyValueEnd > bodyValueStart) {
                 const bodyContent = repaired.substring(bodyValueStart, bodyValueEnd);
                 // Remove any malformed key-value pairs within the body content
-                const cleanBody = bodyContent.replace(/",\s*"[^"]+":\s*"/g, ' ').replace(/",\s*"[^"]+":\s*""/g, ' ');
+                const cleanBody = bodyContent
+                    .replace(/",\s*"[^"]+":\s*"/g, ' ')  // Remove malformed key-value pairs
+                    .replace(/",\s*"[^"]+":\s*""/g, ' ')  // Remove empty key-value pairs
+                    .replace(/\n\s*"[^"]+":\s*"[^"]*"/g, '') // Remove line-broken key-value pairs
+                    .trim();
                 
                 // Rebuild the JSON with clean markdown_body
                 const beforeBody = repaired.substring(0, bodyStart);
                 const afterBody = repaired.substring(bodyValueEnd + 1);
                 
-                repaired = beforeBody + '"markdown_body": "' + cleanBody.trim() + '"' + afterBody;
+                repaired = beforeBody + '"markdown_body": "' + cleanBody + '"' + afterBody;
+            }
+        }
+        
+        // Fix 3: Handle incomplete JSON structure
+        try {
+            JSON.parse(repaired);
+            return repaired;
+        } catch (e2) {
+            console.log("SYNTHESIS: JSON still malformed, attempting more aggressive repair");
+            
+            // Try to extract what we can and rebuild minimal valid JSON
+            const fields = ['seo_title', 'url_slug', 'meta_description', 'tldr', 'markdown_body', 'keywords', 'schema_type'];
+            const extracted: any = {};
+            
+            for (const field of fields) {
+                const regex = new RegExp(`"${field}"\\s*:\\s*"([^"]*(?:\\.[^"]*)*)"`, 'i');
+                const match = repaired.match(regex);
+                if (match) {
+                    extracted[field] = match[1].replace(/\\"/g, '"');
+                }
+            }
+            
+            // If we have the essential fields, rebuild JSON
+            if (extracted.seo_title && extracted.url_slug && extracted.markdown_body) {
+                console.log("SYNTHESIS: Rebuilding JSON from extracted fields");
+                return JSON.stringify(extracted);
             }
         }
         
