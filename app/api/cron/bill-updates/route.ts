@@ -49,17 +49,19 @@ This bill has been updated since our original analysis.
                 `.trim();
 
                 // Update the bill with fresh data and notice
-                const { error: updateError } = await supabaseAdmin
-                    .from('legislation')
-                    .update({
-                        update_date: freshBill.updateDate,
-                        latest_action: freshBill.latestAction ? {
-                            text: freshBill.latestAction.text,
-                            actionDate: freshBill.updateDate
-                        } : existingBill.latest_action,
-                        markdown_body: (existingBill.markdown_body || '') + updateNotice,
-                        last_updated: new Date().toISOString()
-                    })
+                const updateData: any = {
+                    update_date: freshBill.updateDate,
+                    latest_action: freshBill.latestAction ? {
+                        text: freshBill.latestAction.text,
+                        actionDate: freshBill.updateDate
+                    } : existingBill.latest_action,
+                    markdown_body: (existingBill.markdown_body || '') + updateNotice,
+                    last_updated: new Date().toISOString()
+                };
+
+                const { error: updateError } = await (supabaseAdmin
+                    .from('legislation') as any)
+                    .update(updateData)
                     .eq('bill_id', existingBill.bill_id);
 
                 if (updateError) {

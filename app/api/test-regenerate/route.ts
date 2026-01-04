@@ -42,8 +42,8 @@ export async function POST(req: NextRequest) {
 
                 if (synthesisResult) {
                     // Update the article
-                    const { error: updateError } = await supabaseAdmin
-                        .from('legislation')
+                    const { error: updateError } = await (supabaseAdmin
+                        .from('legislation') as any)
                         .update({
                             seo_title: synthesisResult.seo_title,
                             meta_description: synthesisResult.meta_description,

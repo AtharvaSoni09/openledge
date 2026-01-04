@@ -109,7 +109,7 @@ export function Header({ isHomepage = false }: HeaderProps) {
 
         {/* Main Masthead Row - Balanced Split */}
         <div className="container mx-auto px-6">
-          <div className="flex items-center justify-center py-6" style={{ alignItems: 'center', minHeight: '60px' }}>
+          <div className="flex items-center justify-center py-4 lg:py-6" style={{ alignItems: 'center', minHeight: '60px' }}>
             {/* Left: Search Box Only */}
             <div className="flex-1 flex justify-start">
               <form onSubmit={handleSearch} className="relative">
@@ -119,7 +119,7 @@ export function Header({ isHomepage = false }: HeaderProps) {
                   placeholder="Search..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-48 bg-white text-black pl-9 pr-3 py-2 rounded border border-gray-200 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-semibold"
+                  className="w-32 lg:w-48 bg-white text-black pl-9 pr-3 py-2 rounded border border-gray-200 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-semibold"
                   style={{ borderRadius: '4px', borderWidth: '1px', borderColor: '#f0f0f0' }}
                   aria-label="Search site"
                 />
@@ -133,10 +133,10 @@ export function Header({ isHomepage = false }: HeaderProps) {
                 className="flex flex-col items-center hover:opacity-80 transition-opacity"
                 aria-label="The Daily Law - Legal Analysis and Policy News"
               >
-                <Logo className="text-3xl font-serif font-black tracking-tight m-0 leading-tight">
+                <Logo className="text-2xl lg:text-3xl font-serif font-black tracking-tight m-0 leading-tight">
                   THE DAILY LAW
                 </Logo>
-                <p className="text-xs text-gray-600 mt-1 tracking-wider uppercase" style={{ letterSpacing: '0.1em' }}>
+                <p className="text-xs lg:text-sm text-gray-600 mt-1 tracking-wider uppercase" style={{ letterSpacing: '0.1em' }}>
                   Legal Insight for a Changing World
                 </p>
               </Link>
@@ -146,13 +146,13 @@ export function Header({ isHomepage = false }: HeaderProps) {
             <div className="flex-1 flex justify-end items-center">
               <Link 
                 href="#sign-in" 
-                className="text-gray-600 hover:text-gray-900 transition-colors text-sm font-medium"
+                className="text-gray-600 hover:text-gray-900 transition-colors text-xs lg:text-sm font-medium hidden sm:block"
               >
                 Sign In
               </Link>
               <Link 
                 href="/newsletter" 
-                className="bg-blue-900 hover:bg-blue-800 text-white px-4 py-2 text-sm font-bold uppercase tracking-wide transition-colors rounded ml-4"
+                className="bg-blue-900 hover:bg-blue-800 text-white px-3 lg:px-4 py-2 text-xs lg:text-sm font-bold uppercase tracking-wide transition-colors rounded ml-2 lg:ml-4"
               >
                 Subscribe
               </Link>
@@ -162,51 +162,57 @@ export function Header({ isHomepage = false }: HeaderProps) {
 
         {/* Hairline Divider */}
         <div className="border-t border-gray-100"></div>
+      </header>
 
-        {/* Primary Navigation - Centered */}
-        <nav className="border-t border-gray-100 border-b border-gray-100" role="navigation" aria-label="Main Navigation" style={{ borderTopColor: '#f0f0f0', borderBottomColor: '#f0f0f0' }}>
-          <div className="container mx-auto px-6">
-            <div className="flex items-center justify-center py-3">
-              <div className="hidden lg:flex items-center gap-6">
-                {categories.map((category, index) => (
-                  <React.Fragment key={category.id}>
-                    <Link
-                      href={`/topics/${category.id}`}
-                      className="text-gray-600 hover:text-gray-900 transition-colors text-xs font-bold uppercase tracking-wider whitespace-nowrap hover:underline underline-offset-4 decoration-2 decoration-blue-500"
-                      style={{ letterSpacing: '0.1em' }}
-                    >
-                      {category.name.replace(' Law', '')}
-                    </Link>
-                    {index < categories.length - 1 && (
-                      <span className="text-gray-400 font-light">•</span>
-                    )}
-                  </React.Fragment>
-                ))}
-              </div>
-              
-              {/* Mobile Topics Preview */}
-              <div className="lg:hidden flex items-center gap-4 overflow-x-auto">
-                {categories.slice(0, 4).map((category) => (
+      {/* Topics Navigation - Non-sticky */}
+      <nav 
+        className="border-t border-gray-100 border-b border-gray-100 bg-white" 
+        role="navigation" 
+        aria-label="Main Navigation" 
+        style={{ borderTopColor: '#f0f0f0', borderBottomColor: '#f0f0f0' }}
+      >
+        <div className="container mx-auto px-6">
+          <div className="flex items-center justify-center py-3">
+            <div className="hidden lg:flex items-center gap-6">
+              {categories.map((category, index) => (
+                <React.Fragment key={category.id}>
                   <Link
-                    key={category.id}
                     href={`/topics/${category.id}`}
-                    className="text-gray-600 hover:text-gray-900 transition-colors text-xs font-bold uppercase tracking-wider whitespace-nowrap"
+                    className="text-gray-600 hover:text-gray-900 transition-colors text-xs font-bold uppercase tracking-wider whitespace-nowrap hover:underline underline-offset-4 decoration-2 decoration-blue-500"
                     style={{ letterSpacing: '0.1em' }}
                   >
                     {category.name.replace(' Law', '')}
                   </Link>
-                ))}
-                <button 
-                  onClick={() => setMobileMenuOpen(true)}
-                  className="text-gray-500 hover:text-gray-700 transition-colors text-xs font-bold uppercase tracking-wider whitespace-nowrap"
+                  {index < categories.length - 1 && (
+                    <span className="text-gray-400 font-light">•</span>
+                  )}
+                </React.Fragment>
+              ))}
+            </div>
+            
+            {/* Mobile Topics Preview */}
+            <div className="lg:hidden flex items-center gap-3 overflow-x-auto">
+              {categories.slice(0, 3).map((category) => (
+                <Link
+                  key={category.id}
+                  href={`/topics/${category.id}`}
+                  className="text-gray-600 hover:text-gray-900 transition-colors text-xs font-bold uppercase tracking-wider whitespace-nowrap"
                   style={{ letterSpacing: '0.1em' }}
                 >
-                  More...
-                </button>
-              </div>
+                  {category.name.replace(' Law', '')}
+                </Link>
+              ))}
+              <button 
+                onClick={() => setMobileMenuOpen(true)}
+                className="text-gray-500 hover:text-gray-700 transition-colors text-xs font-bold uppercase tracking-wider whitespace-nowrap"
+                style={{ letterSpacing: '0.1em' }}
+              >
+                More...
+              </button>
             </div>
           </div>
-        </nav>
+        </div>
+      </nav>
 
         {/* Mobile Menu */}
         <div className="lg:hidden border-t border-gray-200">
@@ -242,7 +248,6 @@ export function Header({ isHomepage = false }: HeaderProps) {
             )}
           </div>
         </div>
-      </header>
     </>
   );
 }
