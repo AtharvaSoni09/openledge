@@ -72,6 +72,14 @@ export function Header({ isHomepage = false }: HeaderProps) {
             <div className="flex items-center justify-end py-3">
               <nav className="flex items-center gap-3 text-xs text-gray-700 font-medium" role="navigation" aria-label="Utility Navigation">
                 <Link 
+                  href="/topics"
+                  className="hover:text-gray-900 transition-colors"
+                  title="Browse all legislative topics and categories"
+                >
+                  Topics
+                </Link>
+                <span className="text-gray-300">|</span>
+                <Link 
                   href="/about" 
                   className="hover:text-gray-900 transition-colors"
                   title="Learn about The Daily Law's mission and team"
@@ -174,7 +182,7 @@ export function Header({ isHomepage = false }: HeaderProps) {
         <div className="container mx-auto px-6">
           <div className="flex items-center justify-center py-3">
             <div className="hidden lg:flex items-center gap-6">
-              {categories.map((category, index) => (
+              {categories.filter(cat => cat.id !== 'miscellaneous').map((category, index) => (
                 <React.Fragment key={category.id}>
                   <Link
                     href={`/topics/${category.id}`}
@@ -183,7 +191,7 @@ export function Header({ isHomepage = false }: HeaderProps) {
                   >
                     {category.name.replace(' Law', '')}
                   </Link>
-                  {index < categories.length - 1 && (
+                  {index < categories.filter(cat => cat.id !== 'miscellaneous').length - 1 && (
                     <span className="text-gray-400 font-light">•</span>
                   )}
                 </React.Fragment>
@@ -192,7 +200,7 @@ export function Header({ isHomepage = false }: HeaderProps) {
             
             {/* Mobile Topics Preview */}
             <div className="lg:hidden flex items-center gap-3 overflow-x-auto">
-              {categories.slice(0, 3).map((category) => (
+              {categories.filter(cat => cat.id !== 'miscellaneous').slice(0, 3).map((category) => (
                 <Link
                   key={category.id}
                   href={`/topics/${category.id}`}
@@ -228,7 +236,7 @@ export function Header({ isHomepage = false }: HeaderProps) {
             {mobileMenuOpen && (
               <div className="pb-4">
                 <div className="grid grid-cols-2 gap-4">
-                  {categories.map((category) => (
+                  {categories.filter(cat => cat.id !== 'miscellaneous').map((category) => (
                     <Link
                       key={category.id}
                       href={`/topics/${category.id}`}

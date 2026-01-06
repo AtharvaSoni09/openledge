@@ -1,9 +1,9 @@
 import { supabasePublic } from '@/lib/supabase';
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { getCategoryById, categories } from '@/lib/utils/categories';
+import { getCategoryById, categories, categorizeBill } from '@/lib/utils/categories';
 import { notFound } from 'next/navigation';
-import { Pagination } from '@/components/ui/pagination';
+import { Pagination } from '@/components/ui/pagination-new';
 
 interface PageProps {
   params: Promise<{ category: string; page?: string }>;
@@ -46,7 +46,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
 
   // Parse page number
   const currentPage = parseInt(page || '1', 10);
-  const billsPerPage = 6;
+  const billsPerPage = 6; // Back to 6 bills per page
   const offset = (currentPage - 1) * billsPerPage;
 
   // Get all bills for this category
@@ -57,16 +57,10 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
 
   const bills = (allBills as any[]) || [];
 
-  // Filter bills by category keywords
+  // Filter bills by category using centralized categorization
   const categoryBills = bills.filter(bill => {
-    const searchText = [
-      bill.title,
-      bill.tldr,
-      bill.meta_description,
-      ...(bill.keywords || [])
-    ].join(' ').toLowerCase();
-    
-    return categoryData.keywords.some(keyword => searchText.includes(keyword));
+    const billCategories = categorizeBill(bill);
+    return billCategories.some(cat => cat.id === category);
   });
 
   // Calculate pagination
@@ -166,8 +160,9 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
                     <p className="text-sm text-zinc-600 line-clamp-3 mb-4">
                       {bill.tldr}
                     </p>
-                    <div className="flex items-center text-xs text-zinc-500">
-                      <span>Sponsored by {bill.sponsor_data?.sponsors?.[0]?.name || 'Unknown'}</span>
+                    <div className="flex items-center justify-between text-xs text-zinc-500">
+                      <span>{bill.bill_id}</span>
+                      <span>{bill.origin_chamber}</span>
                     </div>
                   </div>
                 </Link>
@@ -194,13 +189,22 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
           </section>
         )}
 
-        {/* Related Topics */}
-        <section className="bg-zinc-50 rounded-xl p-8">
-          <h2 className="text-2xl font-serif font-black text-zinc-900 mb-6">Related Topics</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Back to All Legislation */}
+        <section className="text-center">
+          <Link 
+            href="/legislation-summary" 
+            className="inline-flex items-center text-blue-600 hover:text-blue-700 font-medium transition-colors"
+          >
+            ← Back to All Legislation
+          </Link>
+        </section>
+
+        {/* All Categories */}
+        <section>
+          <h2 className="text-2xl font-serif font-black text-zinc-900 mb-6">All Categories</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {categories
               .filter(cat => cat.id !== category)
-              .slice(0, 3)
               .map((relatedCategory) => (
                 <Link key={relatedCategory.id} href={`/topics/${relatedCategory.id}`} className="block group">
                   <div className="bg-white rounded-lg p-4 border border-zinc-200 hover:border-zinc-300 transition-all">
@@ -209,74 +213,6 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
                   </div>
                 </Link>
               ))}
-          </div>
-        </section>
-
-        {/* All Categories */}
-        <section>
-          <h2 className="text-2xl font-serif font-black text-zinc-900 mb-6">All Topics</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {categories.map((cat) => (
-              <Link 
-                key={cat.id} 
-                href={`/topics/${cat.id}`}
-                className={`block group ${cat.id === category ? 'pointer-events-none' : ''}`}
-              >
-                <div className={`rounded-lg p-4 border transition-all ${
-                  cat.id === category 
-                    ? (() => {
-                      switch(cat.color) {
-                        case 'blue': return 'border-blue-300 bg-blue-50';
-                        case 'red': return 'border-red-300 bg-red-50';
-                        case 'green': return 'border-green-300 bg-green-50';
-                        case 'amber': return 'border-amber-300 bg-amber-50';
-                        case 'emerald': return 'border-emerald-300 bg-emerald-50';
-                        case 'purple': return 'border-purple-300 bg-purple-50';
-                        case 'indigo': return 'border-indigo-300 bg-indigo-50';
-                        case 'orange': return 'border-orange-300 bg-orange-50';
-                        default: return 'border-zinc-300 bg-zinc-50';
-                      }
-                    })()
-                    : 'border-zinc-200 hover:border-zinc-300 bg-white'
-                }`}>
-                  <h3 className={`font-semibold ${
-                    cat.id === category 
-                      ? (() => {
-                        switch(cat.color) {
-                          case 'blue': return 'text-blue-900';
-                          case 'red': return 'text-red-900';
-                          case 'green': return 'text-green-900';
-                          case 'amber': return 'text-amber-900';
-                          case 'emerald': return 'text-emerald-900';
-                          case 'purple': return 'text-purple-900';
-                          case 'indigo': return 'text-indigo-900';
-                          case 'orange': return 'text-orange-900';
-                          default: return 'text-zinc-900';
-                        }
-                      })()
-                      : 'text-zinc-900 group-hover:text-blue-600'
-                  }`}>
-                    {cat.name}
-                  </h3>
-                  <p className="text-sm text-zinc-600 mt-1">{cat.description}</p>
-                  {cat.id === category && (
-                    <div className={`text-xs mt-2 font-medium ${
-                      cat.color === 'blue' ? 'text-blue-600' :
-                      cat.color === 'red' ? 'text-red-600' :
-                      cat.color === 'green' ? 'text-green-600' :
-                      cat.color === 'amber' ? 'text-amber-600' :
-                      cat.color === 'emerald' ? 'text-emerald-600' :
-                      cat.color === 'purple' ? 'text-purple-600' :
-                      cat.color === 'indigo' ? 'text-indigo-600' :
-                      cat.color === 'orange' ? 'text-orange-600' :
-                      'text-zinc-600'
-                    }`}>
-                      Currently viewing
-                    </div>
-                  )}
-                </div>
-              </Link>
-            ))}
           </div>
         </section>
       </div>

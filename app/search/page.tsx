@@ -214,7 +214,7 @@ export default async function SearchPage({ searchParams }: SearchResultsProps) {
                   </div>
                 </div>
                 <h3 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors mb-3 line-clamp-2">
-                  {bill.title}
+                  {bill.seo_title || bill.title}
                 </h3>
                 <p className="text-sm text-gray-600 line-clamp-3 mb-4">
                   {bill.tldr}

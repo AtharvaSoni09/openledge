@@ -2,6 +2,12 @@ import { supabasePublic } from '@/lib/supabase';
 import { BillCard } from '@/components/legislation/BillCard';
 import { Metadata } from 'next';
 import Link from 'next/link';
+import { categorizeBill } from '@/lib/utils/categories';
+import { Pagination } from '@/components/ui/pagination-new';
+
+interface PageProps {
+  searchParams: Promise<{ page?: string }>;
+}
 
 export const dynamic = 'force-dynamic';
 
@@ -21,7 +27,9 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function NationalSecurityTopicHub() {
+export default async function NationalSecurityTopicHub({ searchParams }: PageProps) {
+  const { page } = await searchParams;
+  const currentPage = parseInt(page || '1', 10);
   const { data: bills, error } = await supabasePublic
     .from('legislation')
     .select('*')
@@ -30,12 +38,16 @@ export default async function NationalSecurityTopicHub() {
 
   const allBills = (bills as any[]) || [];
 
-  // Filter for national security related bills
-  const securityKeywords = ['defense', 'security', 'military', 'intelligence', 'terrorism', 'cyber', 'homeland', 'pentagon', 'defense authorization', 'national defense'];
+  // Use centralized categorization system
   const securityBills = allBills.filter(bill => {
-    const searchText = (bill.title + ' ' + bill.tldr + ' ' + bill.meta_description).toLowerCase();
-    return securityKeywords.some(keyword => searchText.includes(keyword));
+    const categories = categorizeBill(bill);
+    return categories.some(cat => cat.id === 'national-security');
   });
+
+  const billsPerPage = 6;
+  const offset = (currentPage - 1) * billsPerPage;
+  const paginatedBills = securityBills.slice(offset, offset + billsPerPage);
+  const totalPages = Math.ceil(securityBills.length / billsPerPage);
 
   return (
     <div className="container mx-auto px-4 py-12 max-w-6xl">
@@ -67,11 +79,34 @@ export default async function NationalSecurityTopicHub() {
           </div>
         </section>
 
+        {/* Security Topics */}
+        <section className="bg-zinc-50 rounded-xl p-8">
+          <h2 className="text-2xl font-serif font-black text-zinc-900 mb-6">Key Security Topics</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-white rounded-lg p-4 border border-zinc-200">
+              <h3 className="font-semibold text-zinc-900 mb-2">Defense Authorization</h3>
+              <p className="text-sm text-zinc-600">Annual defense spending and military policy</p>
+            </div>
+            <div className="bg-white rounded-lg p-4 border border-zinc-200">
+              <h3 className="font-semibold text-zinc-900 mb-2">Intelligence Reform</h3>
+              <p className="text-sm text-zinc-600">Oversight and modernization of intelligence agencies</p>
+            </div>
+            <div className="bg-white rounded-lg p-4 border border-zinc-200">
+              <h3 className="font-semibold text-zinc-900 mb-2">Cybersecurity</h3>
+              <p className="text-sm text-zinc-600">Critical infrastructure and cyber defense</p>
+            </div>
+            <div className="bg-white rounded-lg p-4 border border-zinc-200">
+              <h3 className="font-semibold text-zinc-900 mb-2">Foreign Policy</h3>
+              <p className="text-sm text-zinc-600">International security and diplomatic measures</p>
+            </div>
+          </div>
+        </section>
+
         {/* Featured Security Bills */}
         <section>
           <h2 className="text-2xl font-serif font-black text-zinc-900 mb-6">Featured Security Legislation</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {securityBills.slice(0, 6).map((bill) => (
+            {paginatedBills.map((bill) => (
               <Link 
                 key={bill.bill_id} 
                 href={`/legislation-summary/${bill.url_slug}`}
@@ -92,8 +127,9 @@ export default async function NationalSecurityTopicHub() {
                   <p className="text-sm text-zinc-600 line-clamp-3 mb-4">
                     {bill.tldr}
                   </p>
-                  <div className="flex items-center text-xs text-zinc-500">
-                    <span>Sponsored by {bill.sponsor_data?.name || 'Unknown'}</span>
+                  <div className="flex items-center justify-between text-xs text-zinc-500">
+                    <span>{bill.bill_id}</span>
+                    <span>{bill.origin_chamber}</span>
                   </div>
                 </div>
               </Link>
@@ -101,49 +137,92 @@ export default async function NationalSecurityTopicHub() {
           </div>
         </section>
 
-        {/* Security Topics */}
-        <section className="bg-zinc-50 rounded-xl p-8">
-          <h2 className="text-2xl font-serif font-black text-zinc-900 mb-6">Key Security Topics</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-white rounded-lg p-4 border border-zinc-200">
-              <h3 className="font-semibold text-zinc-900 mb-2">Defense Authorization</h3>
-              <p className="text-sm text-zinc-600">Annual defense spending and military policy</p>
-            </div>
-            <div className="bg-white rounded-lg p-4 border border-zinc-200">
-              <h3 className="font-semibold text-zinc-900 mb-2">Intelligence Reform</h3>
-              <p className="text-sm text-zinc-600">CIA, NSA, and intelligence community oversight</p>
-            </div>
-            <div className="bg-white rounded-lg p-4 border border-zinc-200">
-              <h3 className="font-semibold text-zinc-900 mb-2">Cybersecurity</h3>
-              <p className="text-sm text-zinc-600">Digital infrastructure and cyber threats</p>
-            </div>
-            <div className="bg-white rounded-lg p-4 border border-zinc-200">
-              <h3 className="font-semibold text-zinc-900 mb-2">Homeland Security</h3>
-              <p className="text-sm text-zinc-600">Domestic security and counterterrorism</p>
-            </div>
-          </div>
-        </section>
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <section className="flex justify-center">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              baseUrl="/topics/national-security"
+            />
+          </section>
+        )}
 
         {/* Related Topics */}
         <section>
           <h2 className="text-2xl font-serif font-black text-zinc-900 mb-6">Related Topics</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Link href="/topics/congress" className="block group">
-              <div className="bg-white rounded-lg p-4 border border-zinc-200 hover:border-zinc-300 transition-all">
-                <h3 className="font-semibold text-zinc-900 group-hover:text-blue-600">Congress</h3>
-                <p className="text-sm text-zinc-600 mt-1">All Congressional legislation</p>
-              </div>
-            </Link>
             <Link href="/topics/technology-law" className="block group">
               <div className="bg-white rounded-lg p-4 border border-zinc-200 hover:border-zinc-300 transition-all">
                 <h3 className="font-semibold text-zinc-900 group-hover:text-blue-600">Technology Law</h3>
                 <p className="text-sm text-zinc-600 mt-1">Cybersecurity and tech regulation</p>
               </div>
             </Link>
-            <Link href="/topics/foreign-policy" className="block group">
+            <Link href="/topics/healthcare" className="block group">
               <div className="bg-white rounded-lg p-4 border border-zinc-200 hover:border-zinc-300 transition-all">
-                <h3 className="font-semibold text-zinc-900 group-hover:text-blue-600">Foreign Policy</h3>
-                <p className="text-sm text-zinc-600 mt-1">International relations and treaties</p>
+                <h3 className="font-semibold text-zinc-900 group-hover:text-blue-600">Healthcare</h3>
+                <p className="text-sm text-zinc-600 mt-1">Medical services and veterans healthcare</p>
+              </div>
+            </Link>
+            <Link href="/topics/economy" className="block group">
+              <div className="bg-white rounded-lg p-4 border border-zinc-200 hover:border-zinc-300 transition-all">
+                <h3 className="font-semibold text-zinc-900 group-hover:text-blue-600">Economy</h3>
+                <p className="text-sm text-zinc-600 mt-1">Defense spending and economic policy</p>
+              </div>
+            </Link>
+          </div>
+        </section>
+
+        {/* All Categories */}
+        <section>
+          <h2 className="text-2xl font-serif font-black text-zinc-900 mb-6">All Categories</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Link href="/topics/technology-law" className="block group">
+              <div className="bg-white rounded-lg p-4 border border-zinc-200 hover:border-zinc-300 transition-all">
+                <h3 className="font-semibold text-zinc-900 group-hover:text-blue-600">Technology Law</h3>
+                <p className="text-sm text-zinc-600 mt-1">AI, cybersecurity, and digital policy</p>
+              </div>
+            </Link>
+            <Link href="/topics/healthcare" className="block group">
+              <div className="bg-white rounded-lg p-4 border border-zinc-200 hover:border-zinc-300 transition-all">
+                <h3 className="font-semibold text-zinc-900 group-hover:text-blue-600">Healthcare</h3>
+                <p className="text-sm text-zinc-600 mt-1">Health policy, Medicare, and Medicaid</p>
+              </div>
+            </Link>
+            <Link href="/topics/economy" className="block group">
+              <div className="bg-white rounded-lg p-4 border border-zinc-200 hover:border-zinc-300 transition-all">
+                <h3 className="font-semibold text-zinc-900 group-hover:text-blue-600">Economy</h3>
+                <p className="text-sm text-zinc-600 mt-1">Taxes, finance, and economic policy</p>
+              </div>
+            </Link>
+            <Link href="/topics/energy" className="block group">
+              <div className="bg-white rounded-lg p-4 border border-zinc-200 hover:border-zinc-300 transition-all">
+                <h3 className="font-semibold text-zinc-900 group-hover:text-blue-600">Energy</h3>
+                <p className="text-sm text-zinc-600 mt-1">Climate, environment, and renewable energy</p>
+              </div>
+            </Link>
+            <Link href="/topics/immigration" className="block group">
+              <div className="bg-white rounded-lg p-4 border border-zinc-200 hover:border-zinc-300 transition-all">
+                <h3 className="font-semibold text-zinc-900 group-hover:text-blue-600">Immigration</h3>
+                <p className="text-sm text-zinc-600 mt-1">Border security, visas, and immigration policy</p>
+              </div>
+            </Link>
+            <Link href="/topics/education" className="block group">
+              <div className="bg-white rounded-lg p-4 border border-zinc-200 hover:border-zinc-300 transition-all">
+                <h3 className="font-semibold text-zinc-900 group-hover:text-blue-600">Education</h3>
+                <p className="text-sm text-zinc-600 mt-1">Schools, student loans, and education policy</p>
+              </div>
+            </Link>
+            <Link href="/topics/infrastructure" className="block group">
+              <div className="bg-white rounded-lg p-4 border border-zinc-200 hover:border-zinc-300 transition-all">
+                <h3 className="font-semibold text-zinc-900 group-hover:text-blue-600">Infrastructure</h3>
+                <p className="text-sm text-zinc-600 mt-1">Transportation, broadband, and public works</p>
+              </div>
+            </Link>
+            <Link href="/topics/miscellaneous" className="block group">
+              <div className="bg-white rounded-lg p-4 border border-zinc-200 hover:border-zinc-300 transition-all">
+                <h3 className="font-semibold text-zinc-900 group-hover:text-blue-600">Miscellaneous</h3>
+                <p className="text-sm text-zinc-600 mt-1">Other legislation not fitting specific categories</p>
               </div>
             </Link>
           </div>

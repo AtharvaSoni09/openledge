@@ -87,9 +87,6 @@ export async function RelatedArticles({ currentBill }: RelatedArticlesProps) {
                   {article.tldr}
                 </p>
                 
-                <div className="flex items-center text-xs text-zinc-500">
-                  <span>Sponsored by {article.sponsor_data?.sponsors?.[0]?.name || 'Unknown'}</span>
-                </div>
                 <div className="flex items-center justify-between text-xs text-zinc-500">
                   <span>{article.bill_id}</span>
                   <span>{article.origin_chamber}</span>

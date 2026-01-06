@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { ExternalLink, BookOpen, Scale } from 'lucide-react';
+import { categorizeBill } from '@/lib/utils/categories';
 import { formatDate } from '@/lib/date-utils';
 import { RelatedArticles } from '@/components/legislation/RelatedArticles';
 
@@ -113,13 +114,45 @@ export default async function BillPage({ params }: PageProps) {
                         <Badge variant="secondary" className="mb-4 font-sans tracking-widest text-xs uppercase bg-blue-100 text-blue-800 hover:bg-blue-200">
                             Bill {bill.bill_id}
                         </Badge>
+                        
+                        {/* Category Badges - Simplified to avoid hydration */}
+                        <div className="flex flex-wrap gap-2 mb-4">
+                            {(() => {
+                                const categories = categorizeBill(bill);
+                                return categories.map((category) => (
+                                    <Badge 
+                                        key={category.id}
+                                        variant="outline" 
+                                        className={`font-sans text-xs ${
+                                            category.color === 'blue' ? 'border-blue-200 bg-blue-50 text-blue-700' :
+                                            category.color === 'red' ? 'border-red-200 bg-red-50 text-red-700' :
+                                            category.color === 'green' ? 'border-green-200 bg-green-50 text-green-700' :
+                                            category.color === 'amber' ? 'border-amber-200 bg-amber-50 text-amber-700' :
+                                            'border-zinc-200 bg-zinc-50 text-zinc-700'
+                                        }`}
+                                    >
+                                        {category.name}
+                                    </Badge>
+                                ));
+                            })()}
+                        </div>
                         <h1 className="text-4xl md:text-5xl font-serif font-black text-zinc-900 leading-tight mb-6">
                             {bill.seo_title || bill.title}
                         </h1>
                         <div className="flex flex-wrap items-center text-zinc-500 font-sans text-sm italic gap-4 mb-4">
                             <span>Published {formatDate(bill.created_at)}</span>
                             {bill.introduced_date && <span>Introduced {formatDate(bill.introduced_date)}</span>}
-                            {bill.sponsor && <span>Sponsored by <span className="font-semibold text-zinc-700">{bill.sponsor}</span></span>}
+                            {(() => {
+                                const sponsorName = 
+                                    bill.sponsor_data?.sponsors?.[0]?.name || 
+                                    bill.sponsor_data?.sponsor?.name || 
+                                    bill.sponsor_data?.name ||
+                                    bill.sponsor?.name ||
+                                    null;
+                                return sponsorName && (
+                                    <span>Sponsored by <span className="font-semibold text-zinc-700">{sponsorName}</span></span>
+                                );
+                            })()}
                         </div>
 
                         {/* Bill Status */}

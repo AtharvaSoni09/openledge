@@ -6,8 +6,11 @@ const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY! // Note: Using Servic
 
 console.log("Initializing Supabase Admin with:", supabaseUrl ? "URL Present" : "URL Missing");
 
-// Client for the backend agent (has admin rights)
-export const supabaseAdmin = createClient<Database>(supabaseUrl, supabaseKey)
+// Client for backend agent (has admin rights)
+export const supabaseAdmin: ReturnType<typeof createClient<Database>> = createClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 // Client for the frontend (public/anon) - we can export this separately if needed
 // but for now most operations are agentic.
