@@ -1,10 +1,11 @@
-"use client";
+'use client';
 
 import React from "react";
 import Link from "next/link";
 import { useState } from "react";
-import { Search, Menu, X } from "lucide-react";
+import { Search, Menu, X, User } from "lucide-react";
 import { categories } from "@/lib/utils/categories";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface HeaderProps {
   isHomepage?: boolean;
@@ -14,6 +15,7 @@ export function Header({ isHomepage = false }: HeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const { user, logout } = useAuth();
 
   const Logo = isHomepage ? 'h1' : 'div';
 
@@ -152,18 +154,35 @@ export function Header({ isHomepage = false }: HeaderProps) {
 
             {/* Right: User Actions */}
             <div className="flex-1 flex justify-end items-center">
-              <Link 
-                href="#sign-in" 
-                className="text-gray-600 hover:text-gray-900 transition-colors text-xs lg:text-sm font-medium hidden sm:block"
-              >
-                Sign In
-              </Link>
-              <Link 
-                href="/newsletter" 
-                className="bg-blue-900 hover:bg-blue-800 text-white px-3 lg:px-4 py-2 text-xs lg:text-sm font-bold uppercase tracking-wide transition-colors rounded ml-2 lg:ml-4"
-              >
-                Subscribe
-              </Link>
+              {user ? (
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 text-xs lg:text-sm text-gray-600">
+                    <User className="w-4 h-4" />
+                    <span>{user.email}</span>
+                  </div>
+                  <button
+                    onClick={logout}
+                    className="text-gray-600 hover:text-gray-900 transition-colors text-xs lg:text-sm"
+                  >
+                    Sign Out
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <Link 
+                    href="/sign-in" 
+                    className="text-gray-600 hover:text-gray-900 transition-colors text-xs lg:text-sm font-medium"
+                  >
+                    Sign In
+                  </Link>
+                  <Link 
+                    href="/newsletter" 
+                    className="bg-blue-900 hover:bg-blue-800 text-white px-3 lg:px-4 py-2 text-xs lg:text-sm font-bold uppercase tracking-wide transition-colors rounded ml-2 lg:ml-4"
+                  >
+                    Subscribe
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>

@@ -92,6 +92,32 @@ export interface Database {
           created_at?: string
         }
       }
+      subscribers: {
+        Row: {
+          id: string
+          email: string
+          preferences: Json | null
+          subscription_source: string | null
+          last_seen: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          email: string
+          preferences?: Json | null
+          subscription_source?: string | null
+          last_seen?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          email?: string
+          preferences?: Json | null
+          subscription_source?: string | null
+          last_seen?: string | null
+          created_at?: string
+        }
+      }
     }
   }
 }

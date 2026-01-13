@@ -1,3 +1,6 @@
+import React from "react";
+import Link from "next/link";
+
 export function Footer() {
   return (
     <footer className="border-t py-12 bg-zinc-50">

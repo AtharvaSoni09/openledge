@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase';
+import { getSupabaseAdmin } from '@/lib/supabase';
 import { fetchRecentBills } from '@/lib/agents/congress';
 
 export const dynamic = 'force-dynamic';
@@ -9,7 +9,8 @@ export async function POST(req: NextRequest) {
         console.log("BILL UPDATE: Checking for bill updates");
 
         // Get all existing bills from database
-        const { data: existingBills, error: fetchError } = await supabaseAdmin
+        const supabase = getSupabaseAdmin();
+        const { data: existingBills, error: fetchError } = await supabase
             .from('legislation')
             .select('bill_id, update_date, latest_action, title, origin_chamber');
 
@@ -59,7 +60,7 @@ This bill has been updated since our original analysis.
                     last_updated: new Date().toISOString()
                 };
 
-                const { error: updateError } = await (supabaseAdmin
+                const { error: updateError } = await (supabase
                     .from('legislation') as any)
                     .update(updateData)
                     .eq('bill_id', existingBill.bill_id);

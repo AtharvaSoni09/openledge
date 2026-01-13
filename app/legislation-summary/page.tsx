@@ -29,9 +29,30 @@ export default async function LegislationSummary() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const allBills = (bills as any[]) || [];
 
+    // Remove duplicates by keeping only the newest version of each bill
+    const uniqueBills = allBills.reduce((acc: any[], bill: any) => {
+        const billNumber = bill.bill_id.split('-')[0]; // Extract base bill number (e.g., "HR1234" from "HR1234-119")
+        const existingIndex = acc.findIndex((b: any) => b.bill_id.split('-')[0] === billNumber);
+        
+        if (existingIndex === -1) {
+            acc.push(bill);
+        } else {
+            // Keep the newer version (compare update_date)
+            const existingBill = acc[existingIndex];
+            const existingDate = new Date(existingBill.update_date || existingBill.created_at);
+            const currentDate = new Date(bill.update_date || bill.created_at);
+            
+            if (currentDate > existingDate) {
+                acc[existingIndex] = bill; // Replace with newer version
+            }
+        }
+        
+        return acc;
+    }, []);
+
     // Feature the most recently published bill automatically
-    const featuredBill = allBills[0];
-    const otherBills = allBills.slice(1);
+    const featuredBill = uniqueBills[0];
+    const otherBills = uniqueBills.slice(1);
 
     if (error) {
         console.error("Supabase Error:", error);

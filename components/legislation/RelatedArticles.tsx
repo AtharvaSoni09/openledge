@@ -1,43 +1,60 @@
+'use client';
+
 import Link from "next/link";
 import { categorizeBill } from "@/lib/utils/categories";
 import { supabasePublic } from "@/lib/supabase";
+import { useState, useEffect } from "react";
 
 interface RelatedArticlesProps {
   currentBill: any;
 }
 
-export async function RelatedArticles({ currentBill }: RelatedArticlesProps) {
-  // Get categories for current bill
-  const currentCategories = categorizeBill(currentBill);
-  
-  // Get related bills from same categories (excluding current)
-  const { data: relatedBills } = await supabasePublic
-    .from('legislation')
-    .select('*')
-    .neq('bill_id', currentBill.bill_id)
-    .order('update_date', { ascending: false }) // Sort by latest legislative action
-    .limit(20);
+export default function RelatedArticles({ currentBill }: RelatedArticlesProps) {
+  const [relatedArticles, setRelatedArticles] = useState<any[]>([]);
 
-  const allBills = (relatedBills as any[]) || [];
+  useEffect(() => {
+    const fetchRelatedArticles = async () => {
+      try {
+        // Get categories for current bill
+        const currentCategories = categorizeBill(currentBill);
+        
+        // Get related bills from same categories (excluding current)
+        const { data: relatedBills } = await supabasePublic
+          .from('legislation')
+          .select('*')
+          .neq('bill_id', currentBill.bill_id)
+          .order('update_date', { ascending: false }) // Sort by latest legislative action
+          .limit(20);
 
-  // Score related bills by category matches
-  const scoredBills = allBills.map(bill => {
-    const billCategories = categorizeBill(bill);
-    const categoryMatches = billCategories.filter(cat => 
-      currentCategories.some(currentCat => currentCat.id === cat.id)
-    ).length;
-    
-    return {
-      ...bill,
-      score: categoryMatches
+        const allBills = (relatedBills as any[]) || [];
+
+        // Score related bills by category matches
+        const scoredBills = allBills.map(bill => {
+          const billCategories = categorizeBill(bill);
+          const categoryMatches = billCategories.filter(cat => 
+            currentCategories.some(currentCat => currentCat.id === cat.id)
+          ).length;
+          
+          return {
+            ...bill,
+            score: categoryMatches
+          };
+        });
+
+        // Sort by category matches, then by recency
+        const filteredArticles = scoredBills
+          .sort((a, b) => b.score - a.score)
+          .filter(bill => bill.score > 0) // Only show bills with category matches
+          .slice(0, 3); // Top 3 related articles
+
+        setRelatedArticles(filteredArticles);
+      } catch (error) {
+        console.error('Error fetching related articles:', error);
+      }
     };
-  });
 
-  // Sort by category matches, then by recency
-  const relatedArticles = scoredBills
-    .sort((a, b) => b.score - a.score)
-    .filter(bill => bill.score > 0) // Only show bills with category matches
-    .slice(0, 3); // Top 3 related articles
+    fetchRelatedArticles();
+  }, [currentBill]);
 
   if (relatedArticles.length === 0) {
     return null;

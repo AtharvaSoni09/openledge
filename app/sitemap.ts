@@ -37,8 +37,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
         // Map Supabase bills to sitemap URLs using standardized slugs
         const legislationUrls = bills
-            .filter(bill => bill.url_slug && bill.url_slug.trim() !== '') // Filter out empty slugs
-            .map((bill) => ({
+            .filter((bill: Bill) => bill.url_slug && bill.url_slug.trim() !== '') // Filter out empty slugs
+            .map((bill: Bill) => ({
                 url: `https://thedailylaw.org/legislation-summary/${bill.url_slug}`,
                 lastModified: new Date(bill.update_date || bill.created_at), // Use update_date if available
                 changeFrequency: 'weekly' as const, // More frequent for bills

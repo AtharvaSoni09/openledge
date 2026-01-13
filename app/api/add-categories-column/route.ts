@@ -1,15 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase';
+import { getSupabaseAdmin } from '@/lib/supabase';
 
 export async function POST(req: NextRequest) {
   try {
     console.log('🔄 Adding categories column to legislation table...');
     
     // Add categories column to the legislation table
-    const { error: addColumnError } = await (supabaseAdmin
+    const supabase = getSupabaseAdmin();
+    const { error: addColumnError } = await supabase
       .rpc('exec', {
         sql: 'ALTER TABLE legislation ADD COLUMN IF NOT EXISTS categories TEXT[];'
-      } as any));
+      } as any);
 
     if (addColumnError) {
       console.error('Error adding categories column:', addColumnError);

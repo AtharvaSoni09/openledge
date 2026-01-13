@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase';
+import { getSupabaseAdmin } from '@/lib/supabase';
 import { categorizeBill, categories } from '@/lib/utils/categories';
 
 export async function POST(req: NextRequest) {
   try {
     console.log('🔍 Analyzing bill tagging system...');
     
-    const { data: bills, error } = await supabaseAdmin
+    const supabase = getSupabaseAdmin();
+    const { data: bills, error } = await supabase
       .from('legislation')
       .select('*')
       .order('created_at', { ascending: false })

@@ -1,18 +1,49 @@
-import { Metadata } from 'next';
-import Link from 'next/link';
+'use client';
 
-export const metadata: Metadata = {
-  title: 'Newsletter - Coming Soon | The Daily Law',
-  description: 'Subscribe to The Daily Law newsletter for daily updates on legislation, policy analysis, and legal insights. Coming soon.',
-  openGraph: {
-    title: 'Newsletter - Coming Soon | The Daily Law',
-    description: 'Subscribe to The Daily Law newsletter for daily updates on legislation, policy analysis, and legal insights. Coming soon.',
-    url: 'https://thedailylaw.org/newsletter',
-    type: 'website',
-  },
-};
+import Link from 'next/link';
+import { useState } from 'react';
+import { Mail, CheckCircle } from 'lucide-react';
 
 export default function NewsletterPage() {
+  const [email, setEmail] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [message, setMessage] = useState('');
+  const [isSubscribed, setIsSubscribed] = useState(false);
+
+  const handleSubscribe = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setMessage('');
+
+    try {
+      const response = await fetch('/api/subscribe', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          email: email.toLowerCase(),
+          source: 'newsletter_page',
+          preferences: { frequency: 'daily' }
+        }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        setIsSubscribed(true);
+        setMessage('🎉 Successfully subscribed! Thank you for joining our newsletter.');
+        setEmail('');
+      } else {
+        setMessage(result.error || '❌ Subscription failed. Please try again.');
+      }
+    } catch (error) {
+      setMessage('❌ Network error. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-20 max-w-4xl">
       <div className="text-center">
@@ -24,70 +55,98 @@ export default function NewsletterPage() {
         </div>
         
         <div className="bg-white border border-gray-200 rounded-lg p-12 max-w-2xl mx-auto">
-          <div className="mb-8">
-            <div className="text-6xl mb-4">📧</div>
-            <h2 className="text-2xl font-serif font-semibold text-gray-900 mb-4">
-              Coming Soon
-            </h2>
-            <p className="text-gray-600 mb-6 leading-relaxed">
-              Our newsletter service is currently under development. Soon you'll be able to receive daily updates on legislation, policy analysis, and legal insights delivered directly to your inbox.
-            </p>
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-6">
-              <h3 className="font-semibold text-gray-900 mb-3">What to expect:</h3>
-              <ul className="text-left text-gray-600 space-y-2">
-                <li className="flex items-start">
-                  <span className="text-blue-600 mr-2">•</span>
-                  Daily legislative updates and analysis
-                </li>
-                <li className="flex items-start">
-                  <span className="text-blue-600 mr-2">•</span>
-                  In-depth policy briefings
-                </li>
-                <li className="flex items-start">
-                  <span className="text-blue-600 mr-2">•</span>
-                  Exclusive legal insights
-                </li>
-                <li className="flex items-start">
-                  <span className="text-blue-600 mr-2">•</span>
-                  Curated news from Congress
-                </li>
-              </ul>
-            </div>
-          </div>
-          
-          <div className="space-y-4">
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <p className="text-blue-800 text-sm">
-                <strong>Stay informed:</strong> Check back soon or follow our updates for the newsletter launch announcement.
+          {!isSubscribed ? (
+            <>
+              <div className="mb-8">
+                <div className="text-6xl mb-4">📧</div>
+                <h2 className="text-2xl font-serif font-semibold text-gray-900 mb-4">
+                  Stay Informed
+                </h2>
+                <p className="text-gray-600 mb-6 leading-relaxed">
+                  Get daily legislative updates, policy analysis, and legal insights delivered directly to your inbox. 
+                  Join thousands of readers who trust The Daily Law for clear, non-partisan analysis.
+                </p>
+              </div>
+
+              <form onSubmit={handleSubscribe} className="space-y-4">
+                <div>
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                    Email Address
+                  </label>
+                  <input
+                    type="email"
+                    id="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg"
+                    placeholder="your@email.com"
+                    required
+                  />
+                </div>
+
+                {message && (
+                  <div className={`p-4 rounded-lg ${isSubscribed ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}>
+                    {message}
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={isSubmitting || !email}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-6 rounded-lg font-medium text-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {isSubmitting ? 'Subscribing...' : 'Subscribe to Newsletter'}
+                </button>
+              </form>
+
+              <div className="mt-8 bg-gray-50 border border-gray-200 rounded-lg p-6">
+                <h3 className="font-semibold text-gray-900 mb-3">What you'll receive:</h3>
+                <ul className="text-left text-gray-600 space-y-2">
+                  <li className="flex items-start">
+                    <CheckCircle className="w-5 h-5 text-green-600 mr-2 flex-shrink-0 mt-0.5" />
+                    <span>Daily legislative updates and analysis</span>
+                  </li>
+                  <li className="flex items-start">
+                    <CheckCircle className="w-5 h-5 text-green-600 mr-2 flex-shrink-0 mt-0.5" />
+                    <span>In-depth policy briefings</span>
+                  </li>
+                  <li className="flex items-start">
+                    <CheckCircle className="w-5 h-5 text-green-600 mr-2 flex-shrink-0 mt-0.5" />
+                    <span>Exclusive legal insights</span>
+                  </li>
+                  <li className="flex items-start">
+                    <CheckCircle className="w-5 h-5 text-green-600 mr-2 flex-shrink-0 mt-0.5" />
+                    <span>No spam, unsubscribe anytime</span>
+                  </li>
+                </ul>
+              </div>
+            </>
+          ) : (
+            <div className="text-center py-8">
+              <div className="text-6xl mb-4 text-green-600">🎉</div>
+              <h2 className="text-2xl font-serif font-semibold text-gray-900 mb-4">
+                Successfully Subscribed!
+              </h2>
+              <p className="text-gray-600 mb-6 leading-relaxed">
+                Thank you for subscribing to The Daily Law newsletter. 
+                Check your email for a confirmation message.
               </p>
-            </div>
-            
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link 
-                href="/legislation-summary" 
-                className="inline-flex items-center justify-center bg-gray-900 hover:bg-gray-800 text-white px-6 py-3 font-medium rounded-lg transition-colors"
+                href="/legislation-summary"
+                className="inline-block bg-blue-600 hover:bg-blue-700 text-white py-3 px-6 rounded-lg font-medium transition-colors"
               >
-                Browse Latest Legislation
-              </Link>
-              <Link 
-                href="/topics" 
-                className="inline-flex items-center justify-center border border-gray-300 hover:border-gray-400 text-gray-700 px-6 py-3 font-medium rounded-lg transition-colors"
-              >
-                Explore Topics
+                Continue Reading
               </Link>
             </div>
-          </div>
+          )}
         </div>
-        
+
         <div className="mt-12 text-center">
-          <p className="text-gray-500 text-sm mb-4">
-            Have questions about our upcoming newsletter?
-          </p>
           <Link 
-            href="/about" 
-            className="text-blue-600 hover:text-blue-700 font-medium transition-colors"
+            href="/legislation-summary"
+            className="text-blue-600 hover:text-blue-800 font-medium transition-colors"
           >
-            Contact Us →
+            ← Back to Articles
           </Link>
         </div>
       </div>
