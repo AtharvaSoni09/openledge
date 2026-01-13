@@ -3,7 +3,7 @@ import { Inter, Merriweather } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { LayoutWrapper } from '@/components/layout/layout-wrapper';
-import { Header } from '@/components/layout/header-white';
+import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });

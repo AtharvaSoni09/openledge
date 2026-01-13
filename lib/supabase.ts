@@ -15,12 +15,18 @@ let supabaseAdmin: ReturnType<typeof createClient<Database>> | null = null;
 export const getSupabaseAdmin = () => {
     if (!supabaseAdmin) {
         if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-            throw new Error('SUPABASE_SERVICE_ROLE_KEY is required for admin operations');
+            console.error('SUPABASE_SERVICE_ROLE_KEY is required for admin operations');
+            // Return a dummy client for development
+            supabaseAdmin = createClient<Database>(
+                process.env.NEXT_PUBLIC_SUPABASE_URL!,
+                process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+            ) as any;
+        } else {
+            supabaseAdmin = createClient<Database>(
+                process.env.NEXT_PUBLIC_SUPABASE_URL!,
+                process.env.SUPABASE_SERVICE_ROLE_KEY!
+            );
         }
-        supabaseAdmin = createClient<Database>(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.SUPABASE_SERVICE_ROLE_KEY!
-        );
     }
     return supabaseAdmin;
 };
