@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
         // Step B: Contingency Check
         // We look for bills we haven't done yet in the top 100.
         // If we don't find any (very rare), then we switch to Deep Backfill (Archive Discovery).
-        const supabase = supabaseAdmin();
+        const supabase = getSupabaseAdmin();
         const { data: allIds } = await (supabase as any)
             .from('legislation')
             .select('bill_id');
