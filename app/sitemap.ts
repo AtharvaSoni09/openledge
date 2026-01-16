@@ -17,7 +17,7 @@ type Bill = {
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     try {
         // Fetch all legislation entries from Supabase with error handling
-        const { data: bills, error } = await supabasePublic
+        const { data: bills, error } = await supabasePublic()
             .from('legislation')
             .select('bill_id, url_slug, created_at, update_date')
             .order('update_date', { ascending: false });

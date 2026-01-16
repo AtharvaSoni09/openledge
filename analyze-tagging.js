@@ -5,7 +5,7 @@ async function analyzeTagging() {
   console.log('🔍 Analyzing bill tagging system...\n');
   
   try {
-    const { data: bills, error } = await supabasePublic
+    const { data: bills, error } = await supabasePublic()
       .from('legislation')
       .select('*')
       .order('created_at', { ascending: false })

@@ -50,7 +50,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
   const offset = (currentPage - 1) * billsPerPage;
 
   // Get all bills for this category
-  const { data: allBills, error } = await supabasePublic
+  const { data: allBills, error } = await supabasePublic()
     .from('legislation')
     .select('*')
     .order('update_date', { ascending: false }); // Sort by latest legislative action

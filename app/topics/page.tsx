@@ -19,7 +19,7 @@ export const metadata: Metadata = {
 
 export default async function TopicsPage() {
   // Get all bills to count per category
-  const { data: bills, error } = await supabasePublic
+  const { data: bills, error } = await supabasePublic()
     .from('legislation')
     .select('*')
     .order('created_at', { ascending: false })

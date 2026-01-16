@@ -185,7 +185,7 @@ export default function BillPage({ params }: PageProps) {
                 console.log('Executing Supabase query for slug:', slug);
                 
                 // Use maybeSingle() to handle both cases (found or not found)
-                const { data: billData, error } = await supabasePublic
+                const { data: billData, error } = await supabasePublic()
                     .from('legislation')
                     .select('*')
                     .eq('url_slug', slug)

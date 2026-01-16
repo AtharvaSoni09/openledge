@@ -19,7 +19,7 @@ export default function RelatedArticles({ currentBill }: RelatedArticlesProps) {
         const currentCategories = categorizeBill(currentBill);
         
         // Get related bills from same categories (excluding current)
-        const { data: relatedBills } = await supabasePublic
+        const { data: relatedBills } = await supabasePublic()
           .from('legislation')
           .select('*')
           .neq('bill_id', currentBill.bill_id)

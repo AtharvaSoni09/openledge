@@ -68,7 +68,7 @@ export default async function SearchPage({ searchParams }: SearchResultsProps) {
   }
 
   // Enhanced search with better keyword matching and category awareness
-  const { data: bills, error } = await supabasePublic
+  const { data: bills, error } = await supabasePublic()
     .from('legislation')
     .select('*')
     .order('update_date', { ascending: false })

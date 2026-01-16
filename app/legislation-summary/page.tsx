@@ -22,7 +22,7 @@ export const metadata: Metadata = {
 };
 
 export default async function LegislationSummary() {
-    const { data: bills, error } = await supabasePublic
+    const { data: bills, error } = await supabasePublic()
         .from('legislation')
         .select('*')
         .order('update_date', { ascending: false }); // Sort by latest legislative action

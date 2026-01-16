@@ -23,7 +23,7 @@ export const metadata: Metadata = {
 };
 
 export default async function MiscellaneousTopicHub() {
-  const { data: bills, error } = await supabasePublic
+  const { data: bills, error } = await supabasePublic()
     .from('legislation')
     .select('*')
     .order('created_at', { ascending: false })
