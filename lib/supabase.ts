@@ -10,23 +10,26 @@ export const supabasePublic = createClient<Database>(
 )
 
 // Lazy initialization for admin client (only used in API routes)
-let supabaseAdmin: ReturnType<typeof createClient<Database>> | null = null;
+let _supabaseAdmin: ReturnType<typeof createClient<Database>> | null = null;
 
 export const getSupabaseAdmin = (): ReturnType<typeof createClient<Database>> => {
-    if (!supabaseAdmin) {
+    if (!_supabaseAdmin) {
         if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
             console.error('SUPABASE_SERVICE_ROLE_KEY is required for admin operations');
             // Return a dummy client for development
-            supabaseAdmin = createClient<Database>(
+            _supabaseAdmin = createClient<Database>(
                 process.env.NEXT_PUBLIC_SUPABASE_URL!,
                 process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
             ) as any;
         } else {
-            supabaseAdmin = createClient<Database>(
+            _supabaseAdmin = createClient<Database>(
                 process.env.NEXT_PUBLIC_SUPABASE_URL!,
                 process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY!
             );
         }
     }
-    return supabaseAdmin as any;
+    return _supabaseAdmin as any;
 };
+
+// Also export the function as supabaseAdmin for backward compatibility
+export const supabaseAdmin = getSupabaseAdmin;

@@ -6,7 +6,8 @@ export async function POST(req: NextRequest) {
   try {
     console.log('🔍 Deep categorization analysis...');
     
-    const { data: bills, error } = await supabaseAdmin
+    const supabase = supabaseAdmin();
+    const { data: bills, error } = await supabase
       .from('legislation')
       .select('*')
       .order('created_at', { ascending: false })

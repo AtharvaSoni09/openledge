@@ -72,7 +72,8 @@ export async function POST(req: NextRequest) {
     }
 
     // Get the bill data
-    const { data: bill, error } = await supabaseAdmin
+    const supabase = supabaseAdmin();
+    const { data: bill, error } = await supabase
       .from('legislation')
       .select('*')
       .eq('bill_id', bill_id)

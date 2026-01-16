@@ -6,7 +6,8 @@ export async function POST(req: NextRequest) {
     console.log('🔄 Regenerating all bill titles with correct format...');
     
     // Get all existing bills from database
-    const { data: bills, error: fetchError } = await supabaseAdmin
+    const supabase = supabaseAdmin();
+    const { data: bills, error: fetchError } = await supabase
       .from('legislation')
       .select('bill_id, title, seo_title');
 
@@ -28,7 +29,7 @@ export async function POST(req: NextRequest) {
       console.log(`📝 Updating ${bill.bill_id}:`);
       console.log(`   New: ${newTitle}`);
 
-      const { error: updateError } = await (supabaseAdmin
+      const { error: updateError } = await (supabase
         .from('legislation') as any)
         .update({
           seo_title: newTitle // Update seo_title with the new format

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase';
+import { getSupabaseAdmin } from '@/lib/supabase';
 import { fetchRecentBills } from '@/lib/agents/congress';
 import { fetchSponsorFunds } from '@/lib/agents/openfec';
 import { fetchNewsContext } from '@/lib/agents/newsdata';
@@ -33,7 +33,8 @@ export async function GET(req: NextRequest) {
         // Step B: Contingency Check
         // We look for bills we haven't done yet in the top 100.
         // If we don't find any (very rare), then we switch to Deep Backfill (Archive Discovery).
-        const { data: allIds } = await (supabaseAdmin as any)
+        const supabase = supabaseAdmin();
+        const { data: allIds } = await (supabase as any)
             .from('legislation')
             .select('bill_id');
 
@@ -42,7 +43,7 @@ export async function GET(req: NextRequest) {
 
         if (newBillsInPool.length === 0) {
             console.log("Priority Sweep found no new bills. Switching to Archive Discovery...");
-            const { count: currentCount } = await (supabaseAdmin as any)
+            const { count: currentCount } = await (supabase as any)
                 .from('legislation')
                 .select('*', { count: 'exact', head: true });
 
@@ -66,7 +67,7 @@ export async function GET(req: NextRequest) {
             console.log(`\n--- Processing Bill: ${bill.bill_id} ---`);
 
             // 3. Duplicate Check
-            const { data: existing } = await (supabaseAdmin as any)
+            const { data: existing } = await (supabase as any)
                 .from('legislation')
                 .select('id')
                 .eq('bill_id', bill.bill_id)
@@ -157,7 +158,7 @@ export async function GET(req: NextRequest) {
                 is_published: true
             };
 
-            const { error: insertError } = await (supabaseAdmin as any)
+            const { error: insertError } = await (supabase as any)
                 .from('legislation')
                 .insert(insertData);
 

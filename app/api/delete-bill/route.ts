@@ -12,7 +12,8 @@ export async function DELETE(req: NextRequest) {
     console.log(`🗑️ Deleting bill: ${bill_id}`);
 
     // Delete the bill
-    const { error } = await supabaseAdmin
+    const supabase = supabaseAdmin();
+    const { error } = await supabase
       .from('legislation')
       .delete()
       .eq('bill_id', bill_id);

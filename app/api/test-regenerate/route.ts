@@ -9,7 +9,8 @@ export async function POST(req: NextRequest) {
         console.log("TEST: Manual article regeneration started");
 
         // Get a few existing articles to regenerate
-        const { data: articles, error } = await supabaseAdmin
+        const supabase = supabaseAdmin();
+        const { data: articles, error } = await supabase
             .from('legislation')
             .select('*')
             .limit(3)
@@ -42,7 +43,7 @@ export async function POST(req: NextRequest) {
 
                 if (synthesisResult) {
                     // Update the article
-                    const { error: updateError } = await (supabaseAdmin
+                    const { error: updateError } = await (supabase
                         .from('legislation') as any)
                         .update({
                             seo_title: synthesisResult.seo_title,

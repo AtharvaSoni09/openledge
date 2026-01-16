@@ -7,7 +7,8 @@ export async function POST(req: NextRequest) {
     console.log('🔄 Retagging all bills with updated categorization system...');
     
     // Get all bills from database
-    const { data: bills, error: fetchError } = await supabaseAdmin
+    const supabase = supabaseAdmin();
+    const { data: bills, error: fetchError } = await supabase
       .from('legislation')
       .select('bill_id, title, tldr, meta_description, keywords');
 
@@ -35,7 +36,7 @@ export async function POST(req: NextRequest) {
       console.log(`📝 ${bill.bill_id}: ${newCategories.map(c => c.name).join(', ')}`);
 
       // Update bill with new categories
-      const { error: updateError } = await (supabaseAdmin
+      const { error: updateError } = await (supabase
         .from('legislation') as any)
         .update({
           categories: categoryIds
