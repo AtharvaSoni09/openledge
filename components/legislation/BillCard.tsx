@@ -40,12 +40,13 @@ export function BillCard({ slug, bill_id, title, summary, date, latestAction }: 
                         <p className="text-zinc-600 font-serif leading-relaxed line-clamp-3 text-sm mb-3">
                             {summary}
                         </p>
-                        
+
                         {/* Tiny Status Section */}
-                        {latestAction && (
+                        {/* Tiny Status Section */}
+                        {latestAction?.text && (
                             <div className="text-xs text-zinc-500 font-sans italic border-t border-zinc-100 pt-2">
-                                {latestAction.text.length > 60 
-                                    ? `${latestAction.text.substring(0, 60)}...` 
+                                {latestAction.text.length > 60
+                                    ? `${latestAction.text.substring(0, 60)}...`
                                     : latestAction.text}
                             </div>
                         )}
