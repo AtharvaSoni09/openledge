@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import fs from "fs";
+
 
 // Define the output structure we want from the LLM
 export interface ResearchOutput {
@@ -292,17 +292,11 @@ export async function synthesizeLegislation(
         }
 
     } catch (e: any) {
-        const errorLog = `
-=== OpenAI Error Log ===
-Time: ${new Date().toISOString()}
-Message: ${e.message || e}
-Stack: ${e.stack}
-User Prompt Length: ${userPrompt.length}
-Response Data: ${e.response ? JSON.stringify(e.response.data) : "N/A"}
-========================
-`;
-        fs.appendFileSync("openai-debug.txt", errorLog);
         console.error("SYNTHESIS ERROR (OpenAI Call):", e.message || e);
+        console.error("OpenAI Error Stack:", e.stack);
+        if (e.response) {
+            console.error("OpenAI Response Data:", JSON.stringify(e.response.data));
+        }
         return null;
     }
 }
