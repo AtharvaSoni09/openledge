@@ -6,6 +6,8 @@ import { LayoutWrapper } from '@/components/layout/layout-wrapper';
 import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
 
+import GoogleAnalytics from '@/components/GoogleAnalytics';
+
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 const serif = Merriweather({
   weight: ['300', '400', '700', '900'],
@@ -52,6 +54,7 @@ export default function RootLayout({
           serif.variable
         )}
       >
+        <GoogleAnalytics gaId="G-G3NE5B04VD" />
         <LayoutWrapper>
           {children}
         </LayoutWrapper>
