@@ -11,16 +11,16 @@ interface EmailCaptureModalProps {
   source?: 'popup' | 'header' | 'footer' | 'newsletter_page';
 }
 
-export function EmailCaptureModal({ 
-  isOpen, 
-  onClose, 
-  onAuthenticated, 
-  source = 'popup' 
+export function EmailCaptureModal({
+  isOpen,
+  onClose,
+  onAuthenticated,
+  source = 'popup'
 }: EmailCaptureModalProps) {
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
-  
+
   // Pre-fill email from localStorage if available
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -30,12 +30,12 @@ export function EmailCaptureModal({
       }
     }
   }, []);
-  
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     setError('');
-    
+
     try {
       // First try to authenticate with existing cookie
       const authResponse = await fetch('/api/auth/check', {
@@ -43,23 +43,23 @@ export function EmailCaptureModal({
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
       });
-      
+
       const authResult = await authResponse.json();
-      
+
       if (authResult.authenticated || authResult.user_status === 'subscribed') {
         // User is already authenticated/subscribed
         onAuthenticated('authenticated');
         onClose();
         return;
       }
-      
+
       // If not authenticated, try to subscribe with entered email
       const subscribeResponse = await fetch('/api/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, source }),
       });
-      
+
       const subscribeResult = await subscribeResponse.json();
       if (subscribeResult.success) {
         // Store email for future use
@@ -77,31 +77,31 @@ export function EmailCaptureModal({
       setIsSubmitting(false);
     }
   };
-  
+
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
-      <div className="p-6">
+      <div className="p-6 pt-4">
         {/* Header */}
         <div className="flex justify-between items-start mb-4">
           <h3 className="text-xl font-serif font-bold text-zinc-900">
             {source === 'popup' ? 'Continue Reading' : 'Subscribe to The Daily Law'}
           </h3>
-          <button 
+          <button
             onClick={onClose}
             className="text-zinc-400 hover:text-zinc-600 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
-          
+
         {/* Message */}
         <p className="text-zinc-600 text-sm mb-6">
-          {source === 'popup' 
+          {source === 'popup'
             ? 'Enter your email to continue reading articles and get legislative updates.'
             : 'Get weekly legislative analysis delivered to your inbox.'
           }
         </p>
-          
+
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -118,11 +118,11 @@ export function EmailCaptureModal({
               disabled={isSubmitting}
             />
           </div>
-            
+
           {error && (
             <div className="text-red-600 text-sm">{error}</div>
           )}
-            
+
           <button
             type="submit"
             disabled={isSubmitting}
@@ -130,7 +130,7 @@ export function EmailCaptureModal({
           >
             {isSubmitting ? 'Subscribing...' : 'Subscribe & Continue'}
           </button>
-            
+
           {/* Privacy Note */}
           <p className="text-xs text-zinc-500 text-center mt-4">
             We respect your privacy. Unsubscribe at any time.

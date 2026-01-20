@@ -11,7 +11,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   login: (email: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   isLoading: boolean;
 }
 
@@ -32,7 +32,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     console.log('=== AUTH CONTEXT CHECK TRIGGERED ===');
     console.log('isClient:', isClient);
     console.log('typeof window:', typeof window);
-    
+
     if (isClient) {
       console.log('Running checkAuth...');
       checkAuth();
@@ -48,7 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         credentials: 'include',
       });
       const result = await response.json();
-      
+
       if (result.authenticated && result.subscriber_email) {
         setUser({
           email: result.subscriber_email,
@@ -67,7 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     console.log('=== AUTH CONTEXT LOGIN START ===');
     console.log('Email being submitted:', email);
     setIsLoading(true);
-    
+
     try {
       const response = await fetch('/api/subscribe', {
         method: 'POST',
@@ -75,12 +75,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({ email, source: 'auth' }),
         credentials: 'include',
       });
-      
+
       const result = await response.json();
       console.log('Subscribe API response:', result);
-      
-      // Handle both success and "already subscribed" as successful login
-      if (result.success || result.message === 'Email already subscribed' || result.error === 'Email already subscribed') {
+
+      // Check for success field only (alreadySubscribed is also success)
+      if (result.success) {
         console.log('Login successful, setting user state');
         setUser({
           email: email.toLowerCase(),
@@ -94,7 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         });
       } else {
         console.log('Login failed:', result.error || result.message);
-        throw new Error(result.error || result.message);
+        throw new Error(result.error || result.message || 'Login failed');
       }
     } catch (error) {
       console.error('Login failed:', error);
@@ -105,39 +105,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
     console.log('=== AUTH CONTEXT LOGOUT START ===');
     console.log('Current user state before logout:', user);
+
+    try {
+      // Call server-side logout API to clear httpOnly cookies
+      const response = await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+      });
+
+      const result = await response.json();
+      console.log('Logout API response:', result);
+
+      if (result.success) {
+        console.log('Server-side logout successful');
+      }
+    } catch (error) {
+      console.error('Logout API failed:', error);
+    }
+
+    // Clear client state regardless of API result
     setUser(null);
-    
-    // Show current cookies before clearing
-    console.log('Cookies before logout:', document.cookie);
-    console.log('Document cookie string length:', document.cookie.length);
-    
-    // Try to get all cookies individually
-    const allCookies = document.cookie.split(';');
-    console.log('All cookies found:', allCookies);
-    
-    // Clear auth cookies with multiple approaches
-    const cookies = [
-      'is_authenticated=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; sameSite=lax;',
-      'subscriber_email=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; sameSite=lax;',
-      'is_authenticated=; path=/; domain=localhost; expires=Thu, 01 Jan 1970 00:00:01 GMT; sameSite=lax;',
-      'subscriber_email=; path=/; domain=localhost; expires=Thu, 01 Jan 1970 00:00:01 GMT; sameSite=lax;',
-      'is_authenticated=; path=/; domain=127.0.0.1; expires=Thu, 01 Jan 1970 00:00:01 GMT; sameSite=lax;',
-      'subscriber_email=; path=/; domain=127.0.0.1; expires=Thu, 01 Jan 1970 00:00:01 GMT; sameSite=lax;'
-    ];
-    
-    cookies.forEach((cookie, index) => {
-      console.log(`Clearing cookie ${index + 1}:`, cookie);
-      document.cookie = cookie;
-    });
-    
-    // Show cookies after clearing
-    console.log('Cookies after logout:', document.cookie);
-    console.log('Document cookie string length after clearing:', document.cookie.length);
-    
-    // Also try to clear localStorage
+
+    // Clear localStorage
     if (typeof window !== 'undefined') {
       const emailBefore = localStorage.getItem('subscriber_email');
       console.log('LocalStorage email before clearing:', emailBefore);
@@ -145,10 +137,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const emailAfter = localStorage.getItem('subscriber_email');
       console.log('LocalStorage email after clearing:', emailAfter);
     }
-    
+
     console.log('=== AUTH CONTEXT LOGOUT END ===');
-    
-    // Don't re-check auth immediately after logout - let cookies clear properly
   };
 
   return (

@@ -1,31 +1,24 @@
 import { createClient } from '@supabase/supabase-js'
 import { Database } from '@/types'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-
 // Lazy initialization for public client
 let _supabasePublic: ReturnType<typeof createClient<Database>> | null = null;
 
 export const getSupabasePublic = (): ReturnType<typeof createClient<Database>> => {
     if (!_supabasePublic) {
-        console.log('Environment check:', {
-            NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL ? 'SET' : 'NOT SET',
-            NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? 'SET' : 'NOT SET',
-            NODE_ENV: process.env.NODE_ENV
-        });
-        
-        if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
-            console.error('NEXT_PUBLIC_SUPABASE_URL is required for public operations');
-            throw new Error('NEXT_PUBLIC_SUPABASE_URL is required');
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+        if (!supabaseUrl || !supabaseAnonKey) {
+            console.error('Missing Supabase environment variables:', {
+                NEXT_PUBLIC_SUPABASE_URL: supabaseUrl ? 'SET' : 'NOT SET',
+                NEXT_PUBLIC_SUPABASE_ANON_KEY: supabaseAnonKey ? 'SET' : 'NOT SET',
+                NODE_ENV: process.env.NODE_ENV
+            });
+            throw new Error('Supabase environment variables are not properly configured');
         }
-        if (!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-            console.error('NEXT_PUBLIC_SUPABASE_ANON_KEY is required for public operations');
-            throw new Error('NEXT_PUBLIC_SUPABASE_ANON_KEY is required');
-        }
-        _supabasePublic = createClient<Database>(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-        );
+
+        _supabasePublic = createClient<Database>(supabaseUrl, supabaseAnonKey);
     }
     return _supabasePublic as any;
 };
@@ -48,7 +41,7 @@ export const getSupabaseAdmin = (): ReturnType<typeof createClient<Database>> =>
         } else {
             _supabaseAdmin = createClient<Database>(
                 process.env.NEXT_PUBLIC_SUPABASE_URL!,
-                process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY!
+                process.env.SUPABASE_SERVICE_ROLE_KEY!
             );
         }
     }
