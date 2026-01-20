@@ -194,7 +194,8 @@ export async function synthesizeLegislation(
     TONE & STYLE:
     - COHESIVE NARRATIVE: Avoid fragmented formatting. Write in well-developed, scholarly paragraphs.
     - VISUAL SPACING: MANDATORY - Use double newlines (\\n\\n) between every paragraph.
-    - BOLDED HEADERS: MANDATORY - Start every major section with a bolded header.
+    - VISUAL SPACING: MANDATORY - Use double newlines (\\n\\n) between every paragraph.
+    - HEADERS: Use Markdown H2 (##) for all section headers. DO NOT use inline bolding for headers. Put the content on a new line after the header.
     - SCHOLARLY: Use formal, precise language like The Economist or Politico.
     
     CRITICAL REQUIREMENTS:
@@ -205,11 +206,11 @@ export async function synthesizeLegislation(
     - SEO FOCUS: Include bill numbers naturally in headers and content for search ranking.
     
     SEO STRUCTURE (Add these sections):
-    - **What is the [Bill Name]?** - Clear definition and current status
-    - **What does the bill do?** - Key provisions and mechanisms  
-    - **Why was this bill introduced?** - Background and motivation
-    - **What happens next?** - Timeline and next steps
-    - **Why this matters** - Impact analysis and stakeholders
+    - ## What is the [Bill Name]? - Clear definition and current status
+    - ## What does the bill do? - Key provisions and mechanisms  
+    - ## Why was this bill introduced? - Background and motivation
+    - ## What happens next? - Timeline and next steps
+    - ## Why this matters - Impact analysis and stakeholders
     
     IMPORTANT:
     - Use ONLY the provided context parts (Sponsor, News, Research)
@@ -219,13 +220,13 @@ export async function synthesizeLegislation(
     
     FORMAT:
     Return a detailed JSON object with the fields:
-    - seo_title: Use format "[Bill Name] (${billId}) explained: What It Does, Why It Matters" - 65 chars max. DO NOT use placeholders like "(Bill Number)". ALWAYS use the actual ID in parentheses: (${billId}).
+    - seo_title: STRICT FORMAT: "[Bill Name] (${billId}) explained: What It Does, Why It Matters". You MUST use the exact string "(${billId})" in the title. Do not replace it with "(Bill Number)" or "(HR Not Available)".
     - url_slug: SEO friendly slug with bill number (e.g., "hr7521-explained")
     - meta_description: 150 chars max including bill number ${billId} and key impact
     - tldr: 2-3 sentence impact statement answering "Who benefits?" and "Why it matters?"
     - keywords: 5-7 SEO keywords (bill number ${billId}, sponsor, policy area, "explained", "summary")
     - schema_type: "Legislation"
-    - markdown_body: Full article following the mandatory structure above with bolded headers
+    - markdown_body: Full article following the mandatory structure above with Markdown H2 headers (##)
   `;
 
     const userPrompt = `
