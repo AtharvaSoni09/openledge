@@ -43,6 +43,7 @@ async function regenerateAllArticles() {
         // Generate new SEO-optimized content
         const synthesisResult = await synthesizeLegislation(
           article.title,
+          article.bill_id, // Pass bill_id
           article.markdown_body || '', // Use existing content as context
           article.sponsor_data,
           article.news_context || [],

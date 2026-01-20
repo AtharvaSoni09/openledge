@@ -31,3 +31,19 @@ Stack: Error: 400 This model's maximum context length is 128000 tokens. However,
 User Prompt Length: 558762
 Response Data: N/A
 ========================
+
+=== OpenAI Error Log ===
+Time: 2026-01-20T21:15:48.818Z
+Message: 401 Incorrect API key provided: sk-proj-********************************************************************************************************************************************************bf8A. You can find your API key at https://platform.openai.com/account/api-keys.
+Stack: Error: 401 Incorrect API key provided: sk-proj-********************************************************************************************************************************************************bf8A. You can find your API key at https://platform.openai.com/account/api-keys.
+    at APIError.generate (file:///c:/leg/node_modules/openai/core/error.mjs:44:20)
+    at OpenAI.makeStatusError (file:///c:/leg/node_modules/openai/client.mjs:162:32)
+    at OpenAI.makeRequest (file:///c:/leg/node_modules/openai/client.mjs:330:30)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async c:\leg\lib\agents\openai.ts:241:20
+    at async retryWithBackoff (c:\leg\lib\agents\openai.ts:142:20)
+    at async synthesizeLegislation (c:\leg\lib\agents\openai.ts:240:28)
+    at async test (c:\leg\test-synthesis.js:6:20)
+User Prompt Length: 290
+Response Data: N/A
+========================

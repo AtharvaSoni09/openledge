@@ -24,52 +24,52 @@ function repairJson(content: string): string {
         return content;
     } catch (e) {
         console.log("SYNTHESIS: Attempting to repair malformed JSON");
-        
+
         let repaired = content;
-        
+
         // Fix 1: Handle truncated responses (missing closing brace/quote)
         if (!repaired.trim().endsWith('}')) {
             console.log("SYNTHESIS: Fixing truncated JSON");
             const openBraces = (repaired.match(/\{/g) || []).length;
             const closeBraces = (repaired.match(/\}/g) || []).length;
             const missingBraces = openBraces - closeBraces;
-            
+
             for (let i = 0; i < missingBraces; i++) {
                 repaired += '}';
             }
-            
+
             const lastQuoteIndex = repaired.lastIndexOf('"');
             const secondLastQuoteIndex = repaired.lastIndexOf('"', lastQuoteIndex - 1);
-            
+
             if (lastQuoteIndex > secondLastQuoteIndex && !repaired.substring(lastQuoteIndex).includes('"')) {
                 repaired += '"';
             }
         }
-        
+
         // Fix 2: Completely rebuild JSON by extracting all content properly
         try {
             JSON.parse(repaired);
             return repaired;
         } catch (e2) {
             console.log("SYNTHESIS: JSON still malformed, rebuilding from scratch");
-            
+
             // Extract all content using regex patterns that handle both strings and numbers
             const fields = ['seo_title', 'url_slug', 'meta_description', 'tldr', 'markdown_body', 'keywords', 'schema_type'];
             const extracted: any = {};
-            
+
             for (const field of fields) {
                 // Pattern that handles both "field": "value" and "field": value formats
                 const regex = new RegExp(`"${field}"\\s*:\\s*("([^"]*(?:\\.[^"]*)*)"|([^,}\\n]+))`, 'i');
                 const match = repaired.match(regex);
-                
+
                 if (match) {
                     // Use the string value if available, otherwise use the raw value
                     let value = match[2] || match[3] || '';
-                    
+
                     // Clean up the value
                     if (value) {
                         value = value.replace(/\\"/g, '"').replace(/\\u[0-9a-fA-F]{4}/g, '').trim();
-                        
+
                         // For keywords field, parse as array if it looks like one
                         if (field === 'keywords' && value.startsWith('[')) {
                             try {
@@ -84,19 +84,19 @@ function repairJson(content: string): string {
                     }
                 }
             }
-            
+
             // Special handling for markdown_body - merge all content that should be part of it
             if (extracted.markdown_body && extracted.markdown_body.length < 200) {
                 console.log("SYNTHESIS: markdown_body too short, attempting to merge split content");
-                
+
                 // Find all content that looks like it should be part of the article body
                 const bodyPatterns = [
                     /"([^"]{20,})":\s*([^,}\\n]+)/g,  // "long text": value
                     /:\s*"([^"]{20,})"/g,             // : "long text"
                 ];
-                
+
                 let additionalContent = '';
-                
+
                 bodyPatterns.forEach(pattern => {
                     let match;
                     while ((match = pattern.exec(repaired)) !== null) {
@@ -106,27 +106,27 @@ function repairJson(content: string): string {
                         }
                     }
                 });
-                
+
                 if (additionalContent.length > 100) {
                     extracted.markdown_body += additionalContent;
                     console.log("SYNTHESIS: Merged additional content into markdown_body");
                 }
             }
-            
+
             // If we have the essential fields, rebuild JSON properly
             if (extracted.seo_title && extracted.url_slug && extracted.markdown_body) {
                 console.log("SYNTHESIS: Rebuilding JSON with extracted fields");
-                
+
                 // Ensure markdown_body is substantial
                 if (extracted.markdown_body.length < 200) {
                     console.log("SYNTHESIS: markdown_body still too short after repair");
                     return content; // Return original to fail validation
                 }
-                
+
                 return JSON.stringify(extracted, null, 2);
             }
         }
-        
+
         return repaired;
     }
 }
@@ -144,7 +144,7 @@ async function retryWithBackoff<T>(
             if (attempt === maxRetries) {
                 throw error;
             }
-            
+
             const delay = baseDelay * Math.pow(2, attempt - 1);
             console.log(`SYNTHESIS: Retry ${attempt}/${maxRetries} after ${delay}ms delay`);
             await new Promise(resolve => setTimeout(resolve, delay));
@@ -155,6 +155,7 @@ async function retryWithBackoff<T>(
 
 export async function synthesizeLegislation(
     billTitle: string,
+    billId: string, // Added billId parameter
     fullText: string,
     sponsorInfo: any,
     newsContext: any,
@@ -162,7 +163,7 @@ export async function synthesizeLegislation(
     congressGovUrl: string
 ): Promise<ResearchOutput | null> {
 
-    console.log("SYNTHESIS: Starting for bill:", billTitle);
+    console.log("SYNTHESIS: Starting for bill:", billTitle, "ID:", billId);
 
     function safeStringify(obj: any): string {
         try {
@@ -211,11 +212,11 @@ export async function synthesizeLegislation(
     
     FORMAT:
     Return a detailed JSON object with the fields:
-    - seo_title: Use format "[Bill Name] (Bill Number) explained: What It Does, Why It Matters" - 65 chars max
+    - seo_title: Use format "[Bill Name] (${billId}) explained: What It Does, Why It Matters" - 65 chars max. DO NOT use placeholders like "(Bill Number)". ALWAYS use the actual ID in parentheses: (${billId}).
     - url_slug: SEO friendly slug with bill number (e.g., "hr7521-explained")
-    - meta_description: 150 chars max including bill number and key impact
+    - meta_description: 150 chars max including bill number ${billId} and key impact
     - tldr: 2-3 sentence impact statement answering "Who benefits?" and "Why it matters?"
-    - keywords: 5-7 SEO keywords (bill number, sponsor, policy area, "explained", "summary")
+    - keywords: 5-7 SEO keywords (bill number ${billId}, sponsor, policy area, "explained", "summary")
     - schema_type: "Legislation"
     - markdown_body: Full article following the mandatory structure above with bolded headers
   `;
@@ -261,7 +262,7 @@ export async function synthesizeLegislation(
         try {
             const repairedContent = repairJson(content);
             const parsed = JSON.parse(repairedContent) as ResearchOutput;
-            
+
             // DEBUG: Log the parsed markdown_body length and preview
             console.log("SYNTHESIS DEBUG: markdown_body length:", parsed.markdown_body?.length || 0);
             console.log("SYNTHESIS DEBUG: markdown_body preview:", parsed.markdown_body?.slice(0, 100) || "NONE");

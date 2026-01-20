@@ -6,26 +6,26 @@ import { Metadata } from 'next';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: "Latest Legislation | The Daily Law",
-  description: "Comprehensive analysis of recent US legislation and bills. AI-powered insights on congressional actions and policy changes.",
-  openGraph: {
     title: "Latest Legislation | The Daily Law",
     description: "Comprehensive analysis of recent US legislation and bills. AI-powered insights on congressional actions and policy changes.",
-    url: "https://thedailylaw.org/legislation-summary",
-    type: "website",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Latest Legislation | The Daily Law",
-    description: "Comprehensive analysis of recent US legislation and bills. AI-powered insights on congressional actions and policy changes.",
-  },
+    openGraph: {
+        title: "Latest Legislation | The Daily Law",
+        description: "Comprehensive analysis of recent US legislation and bills. AI-powered insights on congressional actions and policy changes.",
+        url: "https://thedailylaw.org/legislation-summary",
+        type: "website",
+    },
+    twitter: {
+        card: "summary_large_image",
+        title: "Latest Legislation | The Daily Law",
+        description: "Comprehensive analysis of recent US legislation and bills. AI-powered insights on congressional actions and policy changes.",
+    },
 };
 
 export default async function LegislationSummary() {
     const { data: bills, error } = await supabasePublic()
         .from('legislation')
         .select('*')
-        .order('update_date', { ascending: false }); // Sort by latest legislative action
+        .order('created_at', { ascending: false }); // Sort by publication date
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const allBills = (bills as any[]) || [];
 
@@ -33,7 +33,7 @@ export default async function LegislationSummary() {
     const uniqueBills = allBills.reduce((acc: any[], bill: any) => {
         const billNumber = bill.bill_id.split('-')[0]; // Extract base bill number (e.g., "HR1234" from "HR1234-119")
         const existingIndex = acc.findIndex((b: any) => b.bill_id.split('-')[0] === billNumber);
-        
+
         if (existingIndex === -1) {
             acc.push(bill);
         } else {
@@ -41,12 +41,12 @@ export default async function LegislationSummary() {
             const existingBill = acc[existingIndex];
             const existingDate = new Date(existingBill.update_date || existingBill.created_at);
             const currentDate = new Date(bill.update_date || bill.created_at);
-            
+
             if (currentDate > existingDate) {
                 acc[existingIndex] = bill; // Replace with newer version
             }
         }
-        
+
         return acc;
     }, []);
 
@@ -76,7 +76,7 @@ export default async function LegislationSummary() {
                                 <p className="text-base md:text-lg text-zinc-400 font-sans leading-relaxed mb-6 max-w-2xl">
                                     {featuredBill.tldr}
                                 </p>
-                                
+
                                 {/* Bill Status for Featured Bill */}
                                 {featuredBill.latest_action && (
                                     <div className="bg-zinc-800 border border-zinc-700 rounded-lg p-4 mb-6 text-left max-w-2xl">

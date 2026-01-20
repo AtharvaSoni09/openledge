@@ -12,7 +12,7 @@ const supabase = createClient(
 
 async function checkBillUpdates() {
   console.log('🔄 Checking for bill updates...');
-  
+
   // Get all existing bills from database
   const { data: existingBills, error: fetchError } = await supabase
     .from('legislation')
@@ -27,19 +27,19 @@ async function checkBillUpdates() {
 
   // Get fresh data from Congress API
   const freshBills = await fetchRecentBills(200, 0);
-  
+
   const updates = [];
 
   for (const existingBill of existingBills) {
     const freshBill = freshBills.find(b => b.bill_id === existingBill.bill_id);
-    
+
     if (freshBill && freshBill.updateDate !== existingBill.update_date) {
       console.log(`📝 Update found for ${existingBill.bill_id}:`);
       console.log(`  Old: ${existingBill.update_date}`);
       console.log(`  New: ${freshBill.updateDate}`);
-      
+
       const changes = [];
-      
+
       // Check for status changes
       if (freshBill.latestAction?.text) {
         const oldAction = existingBill.latest_action?.text || '';
@@ -47,7 +47,7 @@ async function checkBillUpdates() {
           changes.push(`Action: "${oldAction}" → "${freshBill.latestAction.text}"`);
         }
       }
-      
+
       updates.push({
         bill_id: existingBill.bill_id,
         old_update_date: existingBill.update_date,
@@ -74,7 +74,7 @@ async function checkBillUpdates() {
 
 async function processBillUpdate(update) {
   console.log(`\n🔄 Processing update for ${update.bill_id}`);
-  
+
   // Get the full bill data
   const { data: bill } = await supabase
     .from('legislation')
@@ -104,6 +104,7 @@ If the bill has passed, failed, or had major status changes, emphasize this in t
   try {
     const synthesisResult = await synthesizeLegislation(
       bill.title,
+      bill.bill_id, // Pass bill_id
       bill.markdown_body + '\n\n' + updateContext,
       bill.sponsor_data,
       bill.news_context || [],

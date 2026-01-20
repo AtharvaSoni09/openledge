@@ -30,10 +30,11 @@ export async function POST(req: NextRequest) {
         // Regenerate each article with new SEO prompt
         for (const article of articles as any[]) {
             console.log(`TEST: Regenerating ${article.bill_id}`);
-            
+
             try {
                 const synthesisResult = await synthesizeLegislation(
                     article.title,
+                    article.bill_id, // Added
                     article.markdown_body || '',
                     article.sponsor_data,
                     article.news_context || [],
@@ -60,8 +61,8 @@ export async function POST(req: NextRequest) {
                         results.push({ bill_id: article.bill_id, status: 'failed', error: updateError.message });
                     } else {
                         console.log(`TEST: Successfully regenerated ${article.bill_id}`);
-                        results.push({ 
-                            bill_id: article.bill_id, 
+                        results.push({
+                            bill_id: article.bill_id,
                             status: 'success',
                             new_title: synthesisResult.seo_title,
                             content_length: synthesisResult.markdown_body.length
@@ -80,7 +81,7 @@ export async function POST(req: NextRequest) {
             }
         }
 
-        return NextResponse.json({ 
+        return NextResponse.json({
             message: 'Test regeneration completed',
             results: results
         });

@@ -115,6 +115,7 @@ export async function GET(req: NextRequest) {
 
             const synthesisResult = await synthesizeLegislation(
                 bill.title,
+                bill.bill_id, // Pass bill_id explicitly
                 bill.title,
                 sponsorFunds,
                 newsContext,
@@ -191,7 +192,7 @@ export async function GET(req: NextRequest) {
             const remainingResults = await Promise.allSettled(
                 remainingBills.slice(0, 3).map(bill => processBill(bill))
             );
-            
+
             remainingResults.forEach((result, index) => {
                 if (result.status === 'fulfilled' && result.value) {
                     console.log(`SUCCESS: Published ${result.value}.`);
@@ -202,7 +203,7 @@ export async function GET(req: NextRequest) {
         }
 
         const duration = (Date.now() - startTime) / 1000;
-        
+
         // Revalidate cache after 2 minutes to allow jobs to finish
         if (processedBills.length > 0) {
             setTimeout(() => {
@@ -221,7 +222,7 @@ export async function GET(req: NextRequest) {
                 }
             }, 120000); // 2 minutes
         }
-        
+
         return NextResponse.json({
             success: true,
             processed: processedBills,
