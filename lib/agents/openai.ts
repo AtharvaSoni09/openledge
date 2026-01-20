@@ -13,7 +13,8 @@ export interface ResearchOutput {
 }
 
 const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
+    apiKey: process.env.GROQ_API_KEY || process.env.OPENAI_API_KEY,
+    baseURL: "https://api.groq.com/openai/v1"
 });
 
 // Helper function to repair malformed JSON from GPT
@@ -141,6 +142,12 @@ async function retryWithBackoff<T>(
         try {
             return await fn();
         } catch (error: any) {
+            // Don't retry on auth errors or bad requests
+            if (error.status === 401 || error.status === 403 || error.status === 400) {
+                console.error(`SYNTHESIS: Non-retriable error ${error.status}:`, error.message);
+                throw error;
+            }
+
             if (attempt === maxRetries) {
                 throw error;
             }
@@ -234,12 +241,12 @@ export async function synthesizeLegislation(
   `;
 
     try {
-        console.log("SYNTHESIS: Sending request to OpenAI (gpt-4o-mini)...");
+        console.log("SYNTHESIS: Sending request to Groq (llama-3.3-70b-versatile)...");
         console.log("SYNTHESIS: User Prompt Length:", userPrompt.length);
 
         const completion = await retryWithBackoff(async () => {
             return await openai.chat.completions.create({
-                model: "gpt-4o-mini",
+                model: "llama-3.3-70b-versatile",
                 messages: [
                     { role: "system", content: systemPrompt },
                     { role: "user", content: userPrompt }
