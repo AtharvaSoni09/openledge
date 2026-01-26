@@ -103,60 +103,63 @@ export async function GET(req: NextRequest) {
             day: 'numeric'
         });
 
-        // 4. Send Emails via Resend
-        // Use the custom domain sender by default now that it's verified
+        // 4. Send Emails via Resend Batch API
+        // This is more efficient and avoids the 2 requests/second rate limit
         const sender = testFrom || 'The Daily Law <updates@thedailylaw.org>';
 
-        const sendPromises = recipientEmails.map((email: string) =>
-            resend.emails.send({
-                from: sender,
-                to: email,
-                subject: `Daily News Updated: ${articles[0].title}`,
-                react: React.createElement(DailyNewsletterTemplate, {
-                    articles,
-                    date: dateString
-                }),
-            })
-        );
+        const batchEmails = recipientEmails.map((email: string) => ({
+            from: sender,
+            to: email,
+            subject: `Daily News Updated: ${articles[0].title}`,
+            react: React.createElement(DailyNewsletterTemplate, {
+                articles,
+                date: dateString
+            }),
+        }));
 
-        const results = await Promise.allSettled(sendPromises);
-
-        const successCount = results.filter((r: any) => r.status === 'fulfilled').length;
-        const failCount = results.filter((r: any) => r.status === 'rejected').length;
+        console.log(`CRON: Sending batch of ${batchEmails.length} emails...`);
+        const batchResponse = await resend.batch.send(batchEmails);
 
         // Detailed info for debugging
-        const deliveryDetails = results.map((r: any, idx) => {
+        let actualSuccess = 0;
+        let actualFail = 0;
+
+        const deliveryDetails = (batchResponse.data?.data || []).map((item: any, idx: number) => {
             const recipient = recipientEmails[idx];
-            if (r.status === 'fulfilled') {
-                const { data, error } = r.value;
+            if (item.id) {
+                actualSuccess++;
                 return {
                     recipient,
                     status: 'success',
-                    id: data?.id || null,
-                    error: error ? { message: error.message, name: error.name, code: error.code } : null
+                    id: item.id,
+                    error: null
                 };
             } else {
+                actualFail++;
                 return {
                     recipient,
                     status: 'error',
                     id: null,
-                    error: {
-                        message: r.reason?.message || "Unknown error",
-                        name: r.reason?.name || "Error",
-                        stack: r.reason?.stack
-                    }
+                    error: item.error || "Unknown batch error"
                 };
             }
         });
 
-        // Calculate actual success based on Resend's inner error
-        const actualSuccess = deliveryDetails.filter(d => d.status === 'success' && !d.error).length;
-        const actualFail = deliveryDetails.length - actualSuccess;
+        // Handle case where the entire batch request failed
+        if (batchResponse.error) {
+            console.error("CRON: Batch send failed entirely:", batchResponse.error);
+            actualFail = recipientEmails.length;
+            return NextResponse.json({
+                success: false,
+                error: batchResponse.error.message,
+                details: recipientEmails.map(email => ({ recipient: email, status: 'error', error: batchResponse.error }))
+            }, { status: 500 });
+        }
 
-        if (failCount > 0) {
-            results.forEach((r: any, idx) => {
-                if (r.status === 'rejected') {
-                    console.error(`CRON: Failed to send to ${recipientEmails[idx]}:`, r.reason);
+        if (actualFail > 0) {
+            deliveryDetails.forEach(detail => {
+                if (detail.status === 'error') {
+                    console.error(`CRON: Failed to send to ${detail.recipient}:`, detail.error);
                 }
             });
         }
