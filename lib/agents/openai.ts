@@ -12,10 +12,24 @@ export interface ResearchOutput {
     schema_type: string; // "Legislation" or "NewsArticle"
 }
 
-const openai = new OpenAI({
-    apiKey: process.env.GROQ_API_KEY || process.env.OPENAI_API_KEY,
-    baseURL: "https://api.groq.com/openai/v1"
-});
+
+let openaiInstance: OpenAI | null = null;
+
+function getOpenAIClient() {
+    if (!openaiInstance) {
+        const apiKey = process.env.GROQ_API_KEY || process.env.OPENAI_API_KEY;
+        if (!apiKey) {
+            console.warn("SYNTHESIS: No API key found in environment variables.");
+        }
+
+        openaiInstance = new OpenAI({
+            apiKey: apiKey || 'missing-key',
+            baseURL: "https://api.groq.com/openai/v1"
+        });
+    }
+    return openaiInstance;
+}
+
 
 // Helper function to repair malformed JSON from GPT
 function repairJson(content: string): string {
@@ -193,9 +207,8 @@ export async function synthesizeLegislation(
     
     TONE & STYLE:
     - COHESIVE NARRATIVE: Avoid fragmented formatting. Write in well-developed, scholarly paragraphs.
-    - VISUAL SPACING: MANDATORY - Use double newlines (\\n\\n) between every paragraph.
-    - VISUAL SPACING: MANDATORY - Use double newlines (\\n\\n) between every paragraph.
-    - HEADERS: Use Markdown H2 (##) for all section headers. DO NOT use inline bolding for headers. Put the content on a new line after the header.
+    - VISUAL SPACING: MANDATORY - Use double newlines (\\n\\n) between every paragraph AND between headers and content.
+    - HEADERS: Use Markdown H2 (##) for all section headers. Put a blank line before and after every header.
     - SCHOLARLY: Use formal, precise language like The Economist or Politico.
     
     CRITICAL REQUIREMENTS:
@@ -220,7 +233,7 @@ export async function synthesizeLegislation(
     
     FORMAT:
     Return a detailed JSON object with the fields:
-    - seo_title: STRICT FORMAT: "[Bill Name] (${billId}) explained: What It Does, Why It Matters". You MUST use the exact string "(${billId})" in the title. Do not replace it with "(Bill Number)" or "(HR Not Available)".
+    - seo_title: STRICT FORMAT: "[Bill Name] (${billId}) explained: What It Does, Why It Matters". Use the provided bill name but ALWAYS append " (${billId})" exactly. Do not use "(Bill Number)" or "(HR Not Available)".
     - url_slug: SEO friendly slug with bill number (e.g., "hr7521-explained")
     - meta_description: 150 chars max including bill number ${billId} and key impact
     - tldr: 2-3 sentence impact statement answering "Who benefits?" and "Why it matters?"
@@ -246,7 +259,7 @@ export async function synthesizeLegislation(
         console.log("SYNTHESIS: User Prompt Length:", userPrompt.length);
 
         const completion = await retryWithBackoff(async () => {
-            return await openai.chat.completions.create({
+            return await getOpenAIClient().chat.completions.create({
                 model: "llama-3.3-70b-versatile",
                 messages: [
                     { role: "system", content: systemPrompt },

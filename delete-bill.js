@@ -1,62 +1,48 @@
-// Script to delete a specific bill by its URL slug or ID
-import { createClient } from '@supabase/supabase-js';
-import dotenv from 'dotenv';
 
-dotenv.config({ path: '.env.local' });
+require('dotenv').config({ path: '.env.local' });
+const { createClient } = require('@supabase/supabase-js');
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+);
 
-if (!supabaseUrl || !supabaseKey) {
-    console.error('Missing required environment variables');
-    process.exit(1);
-}
+async function deleteBill(identifier) {
+    console.log(`Attempting to delete bill: ${identifier}`);
 
-const supabase = createClient(supabaseUrl, supabaseKey);
-
-async function deleteBill(slugOrId) {
-    console.log(`Attempting to delete bill: ${slugOrId}`);
-
-    // Try to find by slug
-    let { data: bill, error } = await supabase
+    // Try by slug first
+    let { data, error } = await supabase
         .from('legislation')
-        .select('id, title, bill_id')
-        .eq('url_slug', slugOrId)
-        .single();
+        .delete()
+        .eq('url_slug', identifier)
+        .select();
 
-    if (error || !bill) {
-        // Try to find by bill_id
-        ({ data: bill, error } = await supabase
-            .from('legislation')
-            .select('id, title, bill_id')
-            .eq('bill_id', slugOrId)
-            .single());
-    }
-
-    if (error || !bill) {
-        console.error(`Could not find bill: ${slugOrId}`);
+    if (error) {
+        console.error('Error deleting by slug:', error);
+    } else if (data && data.length > 0) {
+        console.log('Successfully deleted by slug:', data[0].bill_id);
         return;
     }
 
-    console.log(`Found bill: ${bill.title} (${bill.bill_id})`);
-
-    const { error: deleteError } = await supabase
+    // Try by bill_id
+    ({ data, error } = await supabase
         .from('legislation')
         .delete()
-        .eq('id', bill.id);
+        .eq('bill_id', identifier)
+        .select());
 
-    if (deleteError) {
-        console.error('Error deleting bill:', deleteError);
+    if (error) {
+        console.error('Error deleting by bill_id:', error);
+    } else if (data && data.length > 0) {
+        console.log('Successfully deleted by bill_id:', data[0].bill_id);
     } else {
-        console.log(`Successfully deleted bill: ${bill.bill_id}`);
+        console.log('No bill found with that identifier.');
     }
 }
 
-// Get the slug from command line arguments
-const target = process.argv[2];
-if (!target) {
-    console.error('Please provide a slug or bill ID to delete');
-    process.exit(1);
+const id = process.argv[2];
+if (!id) {
+    console.log('Usage: node delete-bill.js <url_slug_or_bill_id>');
+} else {
+    deleteBill(id);
 }
-
-deleteBill(target);

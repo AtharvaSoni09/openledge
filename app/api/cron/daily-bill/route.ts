@@ -204,23 +204,30 @@ export async function GET(req: NextRequest) {
 
         const duration = (Date.now() - startTime) / 1000;
 
-        // Revalidate cache after 2 minutes to allow jobs to finish
+        // Revalidate cache immediately after processing
         if (processedBills.length > 0) {
-            setTimeout(() => {
-                try {
-                    // Revalidate homepage and legislation pages (sitemap will pick up changes)
-                    revalidatePath('/');
-                    revalidatePath('/legislation-summary');
-                    // Also revalidate all individual article pages using standardized slugs
-                    processedBills.forEach(billId => {
-                        const slug = generateSlug(billId);
-                        revalidatePath(`/legislation-summary/${slug}`);
-                    });
-                    console.log("Cache revalidated for homepage and legislation pages");
-                } catch (e) {
-                    console.error("Failed to revalidate cache:", e);
-                }
-            }, 120000); // 2 minutes
+            try {
+                console.log("CRON: Revalidating relevant paths...");
+
+                // Revalidate sitemap
+                revalidatePath('/sitemap.xml');
+                revalidatePath('/sitemap.xml', 'page');
+
+                // Revalidate lists
+                revalidatePath('/');
+                revalidatePath('/legislation-summary');
+                revalidatePath('/legislation-summary', 'page');
+
+                // Revalidate individual articles
+                processedBills.forEach(billId => {
+                    const slug = generateSlug(billId);
+                    revalidatePath(`/legislation-summary/${slug}`);
+                });
+
+                console.log("CRON: Cache revalidation triggered successfully");
+            } catch (e: any) {
+                console.error("CRON ERROR: Failed to revalidate cache:", e.message);
+            }
         }
 
         return NextResponse.json({

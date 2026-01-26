@@ -20,7 +20,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         const { data: bills, error } = await supabasePublic()
             .from('legislation')
             .select('bill_id, url_slug, created_at, update_date')
-            .order('update_date', { ascending: false });
+            .order('created_at', { ascending: false });
 
         if (error) {
             console.error('Sitemap error fetching bills:', error);
