@@ -23,6 +23,7 @@ export default function InterestsClient({ email, orgGoal, searchInterests: initi
   const [addedSuggestions, setAddedSuggestions] = useState<Set<string>>(new Set());
   const [isAddingAll, setIsAddingAll] = useState(false);
   const [addAllProgress, setAddAllProgress] = useState<{ current: number; total: number } | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   const handleRemove = async (interest: string) => {
     if (interest.toLowerCase() === orgGoal.toLowerCase()) return;
@@ -111,6 +112,11 @@ export default function InterestsClient({ email, orgGoal, searchInterests: initi
     if (success) {
       setInterests((prev) => [...prev, topic]);
       setAddedSuggestions((prev) => new Set([...prev, topic]));
+      setToast({ message: `Added "${topic}" to interests`, type: 'success' });
+      setTimeout(() => setToast(null), 3000);
+    } else {
+      setToast({ message: `Failed to add "${topic}"`, type: 'error' });
+      setTimeout(() => setToast(null), 3000);
     }
 
     setAddingSuggestion(null);
@@ -226,13 +232,24 @@ export default function InterestsClient({ email, orgGoal, searchInterests: initi
                 )}
               </div>
 
-              {/* Progress bar for Add All */}
-              {isAddingAll && addAllProgress && (
-                <div className="w-full bg-violet-100 rounded-full h-1.5">
-                  <div
-                    className="bg-violet-600 h-1.5 rounded-full transition-all duration-300"
-                    style={{ width: `${(addAllProgress.current / addAllProgress.total) * 100}%` }}
-                  />
+              {/* Progress bar for Add All OR Single Add */}
+              {(isAddingAll || addingSuggestion) && (
+                <div className="w-full space-y-1">
+                  <div className="flex justify-between text-xs text-violet-600 font-medium">
+                    <span>
+                      {isAddingAll
+                        ? `Adding ${addAllProgress?.current}/${addAllProgress?.total}...`
+                        : `Adding "${addingSuggestion}"...`}
+                    </span>
+                    <span>ETA: ~3 min{isAddingAll ? '/topic' : ''}</span>
+                  </div>
+                  <div className="w-full bg-violet-100 rounded-full h-1.5 overflow-hidden">
+                    <div
+                      className={`bg-violet-600 h-1.5 rounded-full transition-all duration-1000 ${addingSuggestion ? 'animate-progress-indeterminate w-full origin-left scale-x-50' : ''
+                        }`}
+                      style={isAddingAll && addAllProgress ? { width: `${(addAllProgress.current / addAllProgress.total) * 100}%` } : {}}
+                    />
+                  </div>
                 </div>
               )}
 
@@ -336,6 +353,16 @@ export default function InterestsClient({ email, orgGoal, searchInterests: initi
           </p>
         </div>
       </div>
-    </main>
+
+      {/* Toast Notification */}
+      {toast && (
+        <div className={`fixed bottom-6 right-6 px-4 py-3 rounded-lg shadow-lg text-sm font-semibold flex items-center gap-2 animate-in slide-in-from-bottom-2 fade-in duration-300 z-50 ${toast.type === 'success' ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'
+          }`}>
+          {toast.type === 'success' ? <Check className="w-4 h-4" /> : <X className="w-4 h-4" />}
+          {toast.message}
+        </div>
+      )
+      }
+    </main >
   );
 }
