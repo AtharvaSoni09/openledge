@@ -44,13 +44,23 @@ async function callWithRetry<T>(
       return await fn();
     } catch (error: any) {
       const is429 = error?.status === 429 || error?.code === 'rate_limit_exceeded';
-      if (!is429 || attempt === maxRetries) throw error;
+      const is400 = error?.status === 400; // JSON validation error or similar
+
+      if ((!is429 && !is400) || attempt === maxRetries) throw error;
+
+      // If 400 (Bad Request), it might be a transient JSON generation issue. Retry immediately-ish.
+      if (is400) {
+        console.log(`RELEVANCE: 400 error (likely JSON), retrying ${attempt + 1}/${maxRetries}...`);
+        await new Promise((r) => setTimeout(r, 1000));
+        continue;
+      }
 
       // Use retry-after header if available, otherwise exponential backoff
       const retryAfter = error?.headers?.get?.('retry-after');
+      // Cap wait at 60s (Vercel functions can run up to 300s, but let's be reasonable)
       const waitMs = retryAfter
-        ? Math.min(parseInt(retryAfter, 10) * 1000, 30000)
-        : Math.min(2000 * Math.pow(2, attempt), 15000);
+        ? Math.min(parseInt(retryAfter, 10) * 1000, 60000)
+        : Math.min(2000 * Math.pow(2, attempt), 30000);
 
       console.log(`RELEVANCE: Rate limited, waiting ${Math.round(waitMs / 1000)}s before retry ${attempt + 1}/${maxRetries}...`);
       await new Promise((r) => setTimeout(r, waitMs));
@@ -71,30 +81,30 @@ export async function quickRelevanceScore(
   try {
     const completion = await callWithRetry(() =>
       getGroq().chat.completions.create({
-        model: 'llama-3.3-70b-versatile',
+        // Use 8B-Instant for quick scoring to save tokens/money/time
+        // It has much higher rate limits (TPM/RPD) than 70B
+        model: 'llama-3.1-8b-instant',
         messages: [
           {
             role: 'system',
-            content: `You are a legislative relevance scorer. Given a bill and a user's organizational goal or area of interest, respond with ONLY a single integer from 0 to 100.
+            content: `You are a legislative relevance scorer. Given a bill and a user's organizational goal, respond with ONLY a single integer from 0 to 100.
+            
+Scoring:
+- 90-100: Directly addresses the goal
+- 70-89: Strongly related
+- 50-69: Meaningful indirect connection
+- 0-49: Loose or no connection
 
-Scoring guide:
-- 90-100: The bill directly addresses the core topic of the goal
-- 70-89: The bill is strongly related and would materially affect the goal
-- 50-69: The bill has meaningful indirect connections to the goal
-- 30-49: The bill has loose or tangential relevance
-- 1-29: Very minor or distant connection
-- 0: Completely unrelated
+Goal: "${orgGoal}"
 
-IMPORTANT: The user's goal may be brief (e.g. "education", "healthcare", "climate"). Interpret broadly — if the goal is "education", ANY bill related to schools, students, teachers, funding for education, student loans, curriculum, etc. should score highly. If the goal is "healthcare", bills about hospitals, insurance, drugs, Medicare, public health, etc. are relevant.
-
-Respond with ONLY the integer, nothing else.`,
+Respond with ONLY the integer.`,
           },
           {
             role: 'user',
-            content: `Bill: "${billTitle}"\nSummary: "${billSummary}"\n\nUser's Goal/Interest: "${orgGoal}"\n\nRelevance score (0-100):`,
+            content: `Bill: "${billTitle}"\nSummary: "${billSummary}"\n\nScore (0-100):`,
           },
         ],
-        max_tokens: 10,
+        max_tokens: 5,
         temperature: 0.1,
       }),
     );
