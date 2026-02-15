@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabase';
 import { scoreBillForGoal } from '@/lib/agents/relevance';
 
-export const maxDuration = 120; // allow up to 2 minutes on Vercel
+export const maxDuration = 300; // allow up to 5 minutes for slower throttled processing
 
 /**
  * POST /api/match-existing
@@ -73,8 +73,8 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Score bills in parallel batches of 5 (to respect Groq rate limits)
-    const BATCH_SIZE = 5;
+    // Score bills in parallel batches of 2 (to respect Groq rate limits)
+    const BATCH_SIZE = 2;
     let newMatches = 0;
     let scored = 0;
 
@@ -113,9 +113,9 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // Small delay between batches to avoid rate limits
+      // 4s delay between batches to stay under 30 RPM (approx 24 req/min)
       if (i + BATCH_SIZE < billsToScore.length) {
-        await new Promise((r) => setTimeout(r, 500));
+        await new Promise((r) => setTimeout(r, 4000));
       }
     }
 
