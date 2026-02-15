@@ -2,11 +2,6 @@ import type { Metadata } from "next";
 import { Inter, Merriweather } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
-import { LayoutWrapper } from '@/components/layout/layout-wrapper';
-import { Header } from '@/components/layout/header';
-import { Footer } from '@/components/layout/footer';
-
-import GoogleAnalytics from '@/components/GoogleAnalytics';
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 const serif = Merriweather({
@@ -16,25 +11,8 @@ const serif = Merriweather({
 });
 
 export const metadata: Metadata = {
-  title: "The Daily Law | Transparent Legislation",
-  description: "AI-powered investigative journalism for US legislation.",
-  icons: {
-    icon: "/favicon.ico",
-    shortcut: "/favicon.ico",
-  },
-  openGraph: {
-    type: "website",
-    locale: "en_US",
-    url: "https://thedailylaw.org",
-    siteName: "The Daily Law",
-    title: "The Daily Law | Transparent Legislation",
-    description: "AI-powered investigative journalism for US legislation.",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "The Daily Law | Transparent Legislation",
-    description: "AI-powered investigative journalism for US legislation.",
-  },
+  title: "Ledge | AI Legislative Monitor",
+  description: "Personalized federal and state legislation tracking powered by AI.",
 };
 
 export default function RootLayout({
@@ -44,21 +22,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        <link rel="canonical" href="https://thedailylaw.org" />
-      </head>
+      <head />
       <body
         className={cn(
-          "min-h-screen bg-background font-serif antialiased",
+          "min-h-screen bg-white font-sans antialiased",
           inter.variable,
           serif.variable
         )}
       >
-        <GoogleAnalytics gaId="G-G3NE5B04VD" />
-        <LayoutWrapper>
-          {children}
-        </LayoutWrapper>
-        <Footer />
+        {children}
       </body>
     </html>
   );

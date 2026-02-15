@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { User } from '@supabase/supabase-js';
 import { getSupabaseAdmin } from '@/lib/supabase';
 
 export async function POST(req: NextRequest) {
@@ -33,8 +32,10 @@ export async function POST(req: NextRequest) {
       }, { status: 401 });
     }
 
-    // Return user data
-    return NextResponse.json({ 
+    const expires = new Date();
+    expires.setDate(expires.getDate() + 30);
+
+    const response = NextResponse.json({
       data: {
         user: {
           id: user.user.id,
@@ -43,8 +44,27 @@ export async function POST(req: NextRequest) {
         },
         session: user.session
       },
-      success: true 
+      success: true
     });
+
+    // Align with cookie-based auth used across the app.
+    response.cookies.set('is_authenticated', 'true', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      expires,
+      path: '/',
+    });
+
+    response.cookies.set('subscriber_email', email.toLowerCase(), {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      expires,
+      path: '/',
+    });
+
+    return response;
 
   } catch (error) {
     console.error('Sign in error:', error);

@@ -130,7 +130,7 @@ export const DailyNewsletterTemplate: React.FC<Readonly<DailyNewsletterProps>> =
             </p>
             <p>
                 <a href="https://thedailylaw.org/about" style={{ color: '#71717a', marginRight: '10px' }}>About Us</a>
-                <a href="https://thedailylaw.org/contact" style={{ color: '#71717a' }}>Contact</a>
+                <a href="https://thedailylaw.org/newsletter" style={{ color: '#71717a' }}>Newsletter</a>
             </p>
         </footer>
     </div>

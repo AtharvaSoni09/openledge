@@ -10,7 +10,7 @@ interface LayoutWrapperProps {
 
 export function LayoutWrapper({ children }: LayoutWrapperProps) {
   const pathname = usePathname();
-  const isHomepage = pathname === "/legislation-summary";
+  const isHomepage = pathname === "/" || pathname === "/legislation-summary";
 
   return (
     <AuthProvider key="auth-provider">

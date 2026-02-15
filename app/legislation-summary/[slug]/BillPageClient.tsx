@@ -16,126 +16,34 @@ import { EmailCaptureModal } from '@/components/ui/EmailCaptureModal';
 import { useAuth } from '@/contexts/AuthContext';
 
 
-// Function to fetch exact bill name using Congress API + OpenAI research
+// Fetch exact bill name using server-side research endpoint.
 async function getExactBillName(billId: string, currentTitle: string) {
     try {
-        console.log('=== FETCHING EXACT BILL NAME (CONGRESS + OPENAI) ===');
-        console.log('Bill ID:', billId);
-        console.log('Current title:', currentTitle);
-
-        // First get Congress API data for accuracy
-        const congressData = await getCongressBillInfo(billId);
-        console.log('Congress API data:', congressData);
-
-        const prompt = `I need the EXACT official name of this US legislation bill. I have Congress API data for accuracy:
-        
-        Bill ID: ${billId}
-        Current Title: "${currentTitle}"
-        
-        Congress API Data:
-        - Chamber: ${congressData?.chamber || 'Unknown'}
-        - Bill Type: ${congressData?.billType || 'Unknown'}
-        - Bill Number: ${congressData?.billNumber || 'Unknown'}
-        - Congress: ${congressData?.congress || 'Unknown'}
-        - Congress API Title: "${congressData?.title || 'Not available'}"
-        - Congress API Short Title: "${congressData?.shortTitle || 'Not available'}"
-        
-        Using this Congress API data as the authoritative source, please provide:
-        1. The EXACT official bill name from Congress (cross-reference with Congress API title)
-        2. Confirm the correct chamber (House or Senate) based on Congress API data
-        3. The bill number and Congress session (verify with Congress API data)
-        4. Any common short title or nickname (cross-reference with Congress API short title)
-        5. Flag any discrepancies between current title and Congress API title
-        
-        Respond in JSON format:
-        {
-            "exactTitle": "Official bill name (use Congress API title as primary source)",
-            "chamber": "${congressData?.chamber || 'House or Senate'}",
-            "billNumber": "${congressData?.billNumber || 'HR123 or S456'}",
-            "congress": "${congressData?.congress || '118th'}",
-            "shortTitle": "Common short title (use Congress API short title)",
-            "discrepancy": "Any noted discrepancies between titles",
-            "confidence": "high/medium/low based on data consistency"
-        }`;
-
         const response = await fetch('/api/openai-research', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                prompt: prompt,
-                context: 'bill_research'
+                billId,
+                currentTitle,
             })
         });
 
         if (!response.ok) {
-            console.log('OpenAI API response not ok:', response.status);
-            return congressData; // Return Congress data as fallback
+            return null;
         }
 
         const data = await response.json();
-        console.log('OpenAI research result:', data);
-
-        // Combine Congress API data with OpenAI research
-        const result = {
-            ...congressData,
+        return {
+            ...data.congressData,
             ...data.result,
-            // Prioritize Congress API data for accuracy
-            title: data.result?.exactTitle || congressData?.title || currentTitle,
-            chamber: data.result?.chamber || congressData?.chamber,
-            confidence: data.result?.confidence || 'medium'
+            title: data.result?.exactTitle || data.congressData?.title || currentTitle,
+            chamber: data.result?.chamber || data.congressData?.chamber,
+            confidence: data.result?.confidence || 'medium',
         };
-
-        console.log('Combined result:', result);
-        return result;
     } catch (error) {
         console.error('Error fetching exact bill name:', error);
-        return null;
-    }
-}
-
-// Function to fetch bill details from Congress API (fallback)
-async function getCongressBillInfo(billId: string) {
-    try {
-        console.log('=== FETCHING CONGRESS BILL INFO ===');
-        console.log('Bill ID:', billId);
-
-        // Extract the bill number and type from bill_id
-        const billMatch = billId.match(/([A-Z]+)(\d+)-(\d+)/);
-        if (!billMatch) {
-            console.log('Could not parse bill ID:', billId);
-            return null;
-        }
-
-        const [, billType, billNumber, congress] = billMatch;
-        const chamber = billType === 'HR' ? 'house' : 'senate';
-
-        console.log('Parsed bill info:', { billType, billNumber, congress, chamber });
-
-        // Use Congress.gov API
-        const apiUrl = `https://api.congress.gov/v3/bill/${congress}/${chamber}/${billNumber}/${congress}`;
-        console.log('Congress API URL:', apiUrl);
-
-        const response = await fetch(apiUrl);
-        if (!response.ok) {
-            console.log('Congress API response not ok:', response.status);
-            return null;
-        }
-
-        const data = await response.json();
-        console.log('Congress API response:', data);
-
-        return {
-            title: data.bill?.title || data.title,
-            shortTitle: data.bill?.shortTitle || data.shortTitle,
-            chamber: chamber,
-            billType: billType,
-            billNumber: billNumber,
-            congress: congress
-        };
-    } catch (error) {
-        console.error('Error fetching Congress bill info:', error);
         return null;
     }
 }

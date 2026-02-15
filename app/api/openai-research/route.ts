@@ -3,49 +3,113 @@ import OpenAI from 'openai';
 
 export const dynamic = 'force-dynamic';
 
+type ParsedBillId = {
+  billType: string;
+  billNumber: string;
+  congress: string;
+  chamber: 'house' | 'senate';
+};
+
+type BillResearchResult = {
+  exactTitle?: string;
+  chamber?: string;
+  billNumber?: string;
+  congress?: string;
+  shortTitle?: string;
+  discrepancy?: string;
+  confidence?: string;
+  error?: string;
+};
+
+function parseBillId(billId: string): ParsedBillId | null {
+  const match = billId.match(/([A-Z]+)(\d+)-(\d+)/i);
+  if (!match) return null;
+
+  const [, rawBillType, billNumber, congress] = match;
+  const billType = rawBillType.toLowerCase();
+  const chamber = billType.startsWith('h') ? 'house' : 'senate';
+
+  return {
+    billType,
+    billNumber,
+    congress,
+    chamber,
+  };
+}
+
+async function fetchCongressBillInfo(billId: string) {
+  const apiKey = process.env.CONGRESS_GOV_API_KEY;
+  const parsed = parseBillId(billId);
+  if (!apiKey || !parsed) return null;
+
+  const url = `https://api.congress.gov/v3/bill/${parsed.congress}/${parsed.billType}/${parsed.billNumber}?format=json&api_key=${apiKey}`;
+  const response = await fetch(url);
+  if (!response.ok) return null;
+
+  const data = await response.json();
+  const bill = data?.bill;
+  if (!bill) return null;
+
+  return {
+    title: bill.title || null,
+    shortTitle: bill.shortTitle || null,
+    chamber: parsed.chamber,
+    billType: parsed.billType.toUpperCase(),
+    billNumber: parsed.billNumber,
+    congress: parsed.congress,
+  };
+}
+
 export async function POST(req: NextRequest) {
   try {
-    console.log('=== OPENAI RESEARCH API CALLED ===');
-    
-    const { email, preferences = {}, source = 'newsletter_page' } = await req.json();
-    
-    // Validate email
-    if (!email || typeof email !== 'string' || !email.includes('@') || email.length < 5) {
-      return NextResponse.json({ error: 'Invalid email address' }, { status: 400 });
+    const {
+      prompt,
+      billId,
+      currentTitle,
+    }: { prompt?: string; billId?: string; currentTitle?: string } = await req.json();
+
+    if (!prompt && !billId) {
+      return NextResponse.json({ error: 'Either prompt or billId is required' }, { status: 400 });
     }
-    
-    console.log('Research request for:', { email, preferences, source });
-    
+
+    if (!process.env.OPENAI_API_KEY) {
+      return NextResponse.json({ error: 'OPENAI_API_KEY is not configured' }, { status: 500 });
+    }
+
+    const congressData = billId ? await fetchCongressBillInfo(billId) : null;
+
+    const effectivePrompt = prompt || `I need the exact official name of this US legislation bill.
+
+Bill ID: ${billId}
+Current title: "${currentTitle || 'Unknown'}"
+Congress API data:
+- Chamber: ${congressData?.chamber || 'Unknown'}
+- Bill Type: ${congressData?.billType || 'Unknown'}
+- Bill Number: ${congressData?.billNumber || 'Unknown'}
+- Congress: ${congressData?.congress || 'Unknown'}
+- Official title: "${congressData?.title || 'Not available'}"
+- Short title: "${congressData?.shortTitle || 'Not available'}"
+
+Return JSON only:
+{
+  "exactTitle": "Official bill name",
+  "chamber": "house or senate",
+  "billNumber": "HR123 or S456",
+  "congress": "119",
+  "shortTitle": "Common short title",
+  "discrepancy": "Difference between current and official title (if any)",
+  "confidence": "high|medium|low"
+}`;
+
     const openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
     });
-    
-    const prompt = `I need to research this US legislation bill:
-    
-    Email: "${email}"
-    Preferences: ${JSON.stringify(preferences)}
-    Source: ${source}
-    
-    Please provide:
-    1. The EXACT official bill name from Congress
-    2. Any common short title or nickname
-    3. Bill number and Congress session
-    4. Current status or recent activity
-    
-    Respond in JSON format:
-    {
-      "exactTitle": "Official bill name",
-      "shortTitle": "Common short title",
-      "billNumber": "HR123 or S456",
-      "congress": "118th",
-      "status": "Current bill status"
-    }`;
-    
+
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
-        { role: "system", content: "You are a legislative research assistant. Provide accurate, factual information about US legislation." },
-        { role: "user", content: prompt }
+        { role: "system", content: "You are a legislative research assistant. Return strict JSON and prioritize official Congress.gov data if provided." },
+        { role: "user", content: effectivePrompt }
       ],
       response_format: { type: "json_object" }
     });
@@ -53,24 +117,26 @@ export async function POST(req: NextRequest) {
     const content = completion.choices[0]?.message?.content;
     console.log('OpenAI research result:', content);
     
-    let result: any;
+    let result: BillResearchResult;
     try {
-      result = JSON.parse(content || '{}');
-    } catch (parseError: any) {
+      result = JSON.parse(content || '{}') as BillResearchResult;
+    } catch (parseError: unknown) {
       console.error('Failed to parse OpenAI response:', parseError);
       result = { error: 'Failed to process research response' };
     }
     
-    return NextResponse.json({ 
+    return NextResponse.json({
       success: true,
-      result: result || null
+      result: result || null,
+      congressData
     });
-    
-  } catch (error: any) {
+
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('OpenAI research error:', error);
-    return NextResponse.json({ 
+    return NextResponse.json({
       error: 'Research service unavailable',
-      details: error.message 
+      details: message
     }, { status: 500 });
   }
 }

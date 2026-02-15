@@ -1,9 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabase';
-import { Database } from '@/types';
-import { createClient } from '@supabase/supabase-js';
-
-type Subscriber = Database['public']['Tables']['subscribers']['Row'];
 
 export async function POST(req: NextRequest) {
   try {
@@ -16,23 +12,11 @@ export async function POST(req: NextRequest) {
 
     // Check if already subscribed
     const supabase = getSupabaseAdmin();
-    let existing;
-    let error;
-
-    if (supabase) {
-      const result = await supabase
-        .from('subscribers')
-        .select('id')
-        .eq('email', email.toLowerCase())
-        .single();
-
-      existing = result.data;
-      error = result.error;
-    } else {
-      // Fallback for development
-      existing = null;
-      error = new Error('Supabase admin not available');
-    }
+    const { data: existing } = await supabase
+      .from('subscribers')
+      .select('id')
+      .eq('email', email.toLowerCase())
+      .single();
 
     if (existing) {
       // User is already subscribed, set authentication cookies
@@ -66,7 +50,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Create new subscriber
-    const { data: subscriber, error: insertError } = await (supabase as any)
+    const { error: insertError } = await supabase
       .from('subscribers')
       .insert({
         email: email.toLowerCase(),

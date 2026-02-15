@@ -196,14 +196,14 @@ export async function synthesizeLegislation(
     }
 
     const systemPrompt = `
-    You are a senior legislative analyst for "The Daily Law" specializing in SEO-optimized legislative analysis.
-    Your objective is to produce comprehensive, search-optimized articles that rank for long-tail legal queries.
+    You are a senior legislative analyst for "Ledge", an AI-powered legislative monitoring platform.
+    Your objective is to produce comprehensive, accurate articles based on the ACTUAL TEXT of legislation.
     
-    SEO STRATEGY:
-    - PRIMARY KEYWORD: Target "[Bill Name] explained" queries
-    - LONG-TAIL QUERIES: Answer "What does [bill] do?", "Who benefits from [bill]?", "Why [bill] matters"
-    - FEATURED SNIPPETS: Structure content to win Google snippets with direct answers
-    - INTERNAL LINKING: Reference 2-3 related bills for topical authority
+    ACCURACY REQUIREMENTS:
+    - The FULL BILL TEXT is provided below. This is the PRIMARY source of truth.
+    - Base your analysis on what the bill ACTUALLY says, not assumptions.
+    - Quote or reference specific sections, titles, and provisions from the bill text.
+    - If specific numbers, thresholds, or dates are in the text, include them.
     
     TONE & STYLE:
     - COHESIVE NARRATIVE: Avoid fragmented formatting. Write in well-developed, scholarly paragraphs.
@@ -214,44 +214,43 @@ export async function synthesizeLegislation(
     CRITICAL REQUIREMENTS:
     - FIRST PARAGRAPH: MUST start with a paragraph summary that INCLUDES THE EXACT BILL NAME from the input title.
     - USE ACTUAL BILL NAME: Use the bill name as provided in the input, not a modified version.
-    - If bill has a common name or short title, use that in your summary.
     - TLDR: MUST include a 2-3 sentence "Impact Statement" answering "Who benefits?" and "Why it matters?"
-    - SEO FOCUS: Include bill numbers naturally in headers and content for search ranking.
+    - Include bill numbers and sponsor names.
     
-    SEO STRUCTURE (Add these sections):
+    ARTICLE STRUCTURE (Use these sections):
     - ## What is the [Bill Name]? - Clear definition and current status
-    - ## What does the bill do? - Key provisions and mechanisms  
+    - ## Key Provisions - Specific provisions, sections, and mechanisms from the bill text
+    - ## What does the bill do? - Detailed breakdown of the bill's effects
     - ## Why was this bill introduced? - Background and motivation
+    - ## Who is affected? - Stakeholders, industries, demographics impacted
     - ## What happens next? - Timeline and next steps
-    - ## Why this matters - Impact analysis and stakeholders
-    
-    IMPORTANT:
-    - Use ONLY the provided context parts (Sponsor, News, Research)
-    - If info is missing, state it clearly
-    - Include bill numbers and sponsor names for SEO
-    - Target 55-65 character titles for optimal CTR
+    - ## Why this matters - Impact analysis
     
     FORMAT:
     Return a detailed JSON object with the fields:
-    - seo_title: STRICT FORMAT: "[Bill Name] (${billId}) explained: What It Does, Why It Matters". Use the provided bill name but ALWAYS append " (${billId})" exactly. Do not use "(Bill Number)" or "(HR Not Available)".
+    - seo_title: STRICT FORMAT: "[Bill Name] (${billId}) explained: What It Does, Why It Matters". ALWAYS append " (${billId})" exactly.
     - url_slug: SEO friendly slug with bill number (e.g., "hr7521-explained")
     - meta_description: 150 chars max including bill number ${billId} and key impact
     - tldr: 2-3 sentence impact statement answering "Who benefits?" and "Why it matters?"
-    - keywords: 5-7 SEO keywords (bill number ${billId}, sponsor, policy area, "explained", "summary")
+    - keywords: 5-7 keywords (bill number ${billId}, sponsor, policy area, "explained", "summary")
     - schema_type: "Legislation"
-    - markdown_body: Full article following the mandatory structure above with Markdown H2 headers (##)
+    - markdown_body: Full article following the mandatory structure above with Markdown H2 headers (##). MUST be detailed and reference the actual bill text.
   `;
 
     const userPrompt = `
     Analyze this Bill: "${billTitle}"
     
-    Context provided:
-    - Summary snippet: ${fullText.slice(0, 2000)}
-    - Sponsor: ${safeStringify(sponsorInfo).slice(0, 5000)}
-    - News: ${safeStringify(newsContext).slice(0, 10000)}
-    - Research: ${safeStringify(policyResearch).slice(0, 10000)}
+    === FULL BILL TEXT (PRIMARY SOURCE — base your analysis on this) ===
+    ${fullText.slice(0, 12000)}
+    ${fullText.length > 12000 ? `\n[... text truncated at 12,000 chars, full bill is ${fullText.length} chars ...]` : ''}
+    === END BILL TEXT ===
     
-    Return a detailed JSON article.
+    Additional context:
+    - Sponsor info: ${safeStringify(sponsorInfo).slice(0, 3000)}
+    - News coverage: ${safeStringify(newsContext).slice(0, 5000)}
+    - Policy research: ${safeStringify(policyResearch).slice(0, 5000)}
+    
+    Return a detailed JSON article based primarily on the actual bill text above.
   `;
 
     try {

@@ -1,8 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseAdmin } from '@/lib/supabase';
-import { Database } from '@/types';
-
-type Subscriber = Database['public']['Tables']['subscribers']['Row'];
 
 export async function GET(req: NextRequest) {
   try {

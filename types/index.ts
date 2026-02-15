@@ -36,6 +36,11 @@ export interface Database {
           congress_gov_url: string | null
           is_published: boolean
           created_at: string
+          source: string | null          // 'federal' | 'state'
+          state_code: string | null      // e.g. 'CA', 'NY' — null for federal
+          status: string | null          // 'Introduced', 'Referred to Committee', etc.
+          status_date: string | null
+          status_changed_at: string | null
         }
         Insert: {
           id?: string
@@ -63,6 +68,11 @@ export interface Database {
           congress_gov_url?: string | null
           is_published?: boolean
           created_at?: string
+          source?: string | null
+          state_code?: string | null
+          status?: string | null
+          status_date?: string | null
+          status_changed_at?: string | null
         }
         Update: {
           id?: string
@@ -90,31 +100,107 @@ export interface Database {
           congress_gov_url?: string | null
           is_published?: boolean
           created_at?: string
+          source?: string | null
+          state_code?: string | null
+          status?: string | null
+          status_date?: string | null
+          status_changed_at?: string | null
         }
       }
       subscribers: {
         Row: {
           id: string
           email: string
+          org_goal: string | null
+          state_focus: string | null
           preferences: Json | null
           subscription_source: string | null
           last_seen: string | null
+          last_notified_id: string | null
           created_at: string
         }
         Insert: {
           id?: string
           email: string
+          org_goal?: string | null
+          state_focus?: string | null
           preferences?: Json | null
           subscription_source?: string | null
           last_seen?: string | null
+          last_notified_id?: string | null
           created_at?: string
         }
         Update: {
           id?: string
           email?: string
+          org_goal?: string | null
+          state_focus?: string | null
           preferences?: Json | null
           subscription_source?: string | null
           last_seen?: string | null
+          last_notified_id?: string | null
+          created_at?: string
+        }
+      }
+      bill_matches: {
+        Row: {
+          id: string
+          subscriber_id: string
+          legislation_id: string
+          match_score: number
+          summary: string | null
+          why_it_matters: string | null
+          implications: string | null
+          notified: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          subscriber_id: string
+          legislation_id: string
+          match_score: number
+          summary?: string | null
+          why_it_matters?: string | null
+          implications?: string | null
+          notified?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          subscriber_id?: string
+          legislation_id?: string
+          match_score?: number
+          summary?: string | null
+          why_it_matters?: string | null
+          implications?: string | null
+          notified?: boolean
+          created_at?: string
+        }
+      }
+    }
+      starred_bills: {
+        Row: {
+          id: string
+          subscriber_id: string
+          legislation_id: string
+          has_update: boolean
+          last_status: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          subscriber_id: string
+          legislation_id: string
+          has_update?: boolean
+          last_status?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          subscriber_id?: string
+          legislation_id?: string
+          has_update?: boolean
+          last_status?: string | null
           created_at?: string
         }
       }

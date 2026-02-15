@@ -37,6 +37,9 @@ yarn-error.log*
 .env.test.local
 .env.production.local
 
+# test scripts
+test-supabase.js
+
 # vercel
 .vercel
 

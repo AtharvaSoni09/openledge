@@ -20,7 +20,7 @@ export const getSupabasePublic = (): ReturnType<typeof createClient<Database>> =
 
         _supabasePublic = createClient<Database>(supabaseUrl, supabaseAnonKey);
     }
-    return _supabasePublic as any;
+    return _supabasePublic;
 };
 
 // Backward compatibility export
@@ -31,21 +31,16 @@ let _supabaseAdmin: ReturnType<typeof createClient<Database>> | null = null;
 
 export const getSupabaseAdmin = (): ReturnType<typeof createClient<Database>> => {
     if (!_supabaseAdmin) {
-        if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-            console.error('SUPABASE_SERVICE_ROLE_KEY is required for admin operations');
-            // Return a dummy client for development
-            _supabaseAdmin = createClient<Database>(
-                process.env.NEXT_PUBLIC_SUPABASE_URL!,
-                process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-            ) as any;
-        } else {
-            _supabaseAdmin = createClient<Database>(
-                process.env.NEXT_PUBLIC_SUPABASE_URL!,
-                process.env.SUPABASE_SERVICE_ROLE_KEY!
-            );
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+        if (!supabaseUrl || !serviceRoleKey) {
+            throw new Error('Missing required Supabase admin environment variables');
         }
+
+        _supabaseAdmin = createClient<Database>(supabaseUrl, serviceRoleKey);
     }
-    return _supabaseAdmin as any;
+    return _supabaseAdmin;
 };
 
 // Also export the function as supabaseAdmin for backward compatibility
