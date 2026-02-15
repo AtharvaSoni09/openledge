@@ -3,7 +3,7 @@ import { getSupabaseAdmin } from '@/lib/supabase';
 import { quickRelevanceScore } from '@/lib/agents/relevance';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 export async function POST(req: NextRequest) {
   try {
@@ -27,13 +27,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Subscriber not found' }, { status: 404 });
     }
 
-    // Fetch all published bills
+    // Fetch all published bills (limit 45 to avoid timeouts with 30 RPM limit)
+    // 45 bills / 2 batch = ~23 batches * 4s delay = ~92s processing time. Fit in 300s.
     const { data: bills } = await (supabase as any)
       .from('legislation')
       .select('id, bill_id, title, seo_title, url_slug, tldr, status, status_date, created_at')
       .eq('is_published', true)
       .order('created_at', { ascending: false })
-      .limit(100);
+      .limit(45);
 
     if (!bills || bills.length === 0) {
       return NextResponse.json({ results: [], query: trimmedQuery });
