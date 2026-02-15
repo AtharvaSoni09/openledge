@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { HelpCircle, FileText, LogOut, LogIn } from 'lucide-react';
+import { HelpCircle, FileText, LogOut, LogIn, ScrollText, Heart } from 'lucide-react';
 
 interface HeaderProps {
   email?: string | null;
@@ -49,8 +49,10 @@ export default function Header({ email }: HeaderProps) {
         </Link>
 
         <nav className="flex items-center gap-1">
-          {navLink('/help', 'Help', HelpCircle)}
           {navLink('/bills', 'Bills', FileText)}
+          {navLink('/interests', 'Interests', Heart)}
+          {navLink('/help', 'Help', HelpCircle)}
+          {navLink('/terms', 'Terms', ScrollText)}
         </nav>
       </div>
 

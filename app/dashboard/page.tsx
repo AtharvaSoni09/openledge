@@ -24,7 +24,7 @@ export default async function DashboardPage() {
   // 1. Fetch subscriber
   const { data: subscriber } = await (supabase as any)
     .from('subscribers')
-    .select('id, email, org_goal, state_focus, created_at')
+    .select('id, email, org_goal, state_focus, created_at, search_interests')
     .eq('email', email)
     .single();
 
@@ -78,6 +78,16 @@ export default async function DashboardPage() {
   }
 
   // 4. Build matched bills list (from matches + bill lookup)
+  // Extract which interest a bill was matched from
+  function extractSource(summary: string | null, orgGoal: string): string {
+    if (!summary) return orgGoal;
+    const interestMatch = summary.match(/interest:\s*"([^"]+)"/i);
+    if (interestMatch) return interestMatch[1];
+    const topicMatch = summary.match(/topic:\s*"([^"]+)"/i);
+    if (topicMatch) return topicMatch[1];
+    return orgGoal;
+  }
+
   const matchedBills: any[] = [];
   for (const match of matches) {
     const bill = billMap[match.legislation_id];
@@ -88,6 +98,7 @@ export default async function DashboardPage() {
         match_summary: match.summary,
         match_why: match.why_it_matters,
         match_implications: match.implications,
+        match_source: extractSource(match.summary, subscriber.org_goal),
       });
     }
   }
@@ -124,6 +135,13 @@ export default async function DashboardPage() {
     }
   }
 
+  // Build interests list for filter
+  const searchInterests: string[] = subscriber.search_interests || [];
+  const allInterests = [
+    subscriber.org_goal,
+    ...searchInterests.filter((i: string) => i.toLowerCase() !== subscriber.org_goal.toLowerCase()),
+  ];
+
   return (
     <DashboardClient
       subscriber={{
@@ -137,6 +155,7 @@ export default async function DashboardPage() {
       starredBills={starredBills}
       starredIds={starredLegIds}
       totalBills={recentBills.length}
+      interests={allInterests}
     />
   );
 }

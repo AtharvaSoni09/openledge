@@ -21,6 +21,7 @@ export default function OnboardingFlow() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [analysisProgress, setAnalysisProgress] = useState('');
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   // Sign-in state
   const [signInEmail, setSignInEmail] = useState('');
@@ -64,6 +65,7 @@ export default function OnboardingFlow() {
           email: email.toLowerCase().trim(),
           org_goal: orgGoal.trim(),
           state_focus: stateFocus,
+          accepted_terms_at: new Date().toISOString(),
         }),
       });
 
@@ -322,6 +324,29 @@ export default function OnboardingFlow() {
             <p className="text-sm text-red-600 bg-red-50 rounded-lg py-2 px-4">{error}</p>
           )}
 
+          <label className="flex items-start gap-3 cursor-pointer group">
+            <input
+              type="checkbox"
+              checked={acceptedTerms}
+              onChange={(e) => setAcceptedTerms(e.target.checked)}
+              className="mt-0.5 w-4 h-4 rounded border-zinc-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+            />
+            <span className="text-xs text-zinc-500 leading-relaxed">
+              I agree to the{' '}
+              <a
+                href="/terms"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:text-blue-800 underline underline-offset-2"
+              >
+                Terms &amp; Conditions
+              </a>
+              . I understand that Ledge provides AI-generated legislative analysis for informational
+              purposes only and does not constitute legal advice. I assume all risk associated with
+              use of this platform.
+            </span>
+          </label>
+
           <div className="flex gap-3">
             <button
               onClick={() => setStep('state')}
@@ -331,7 +356,7 @@ export default function OnboardingFlow() {
             </button>
             <button
               onClick={handleOnboardSubmit}
-              disabled={!email || submitting}
+              disabled={!email || !acceptedTerms || submitting}
               className="flex-[2] py-3 bg-blue-600 text-white rounded-lg font-semibold text-sm hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {submitting ? (
@@ -343,7 +368,7 @@ export default function OnboardingFlow() {
           </div>
 
           <p className="text-[11px] text-zinc-400 text-center">
-            By continuing you agree to receive legislative impact alerts. Unsubscribe anytime.
+            You&apos;ll receive legislative impact alerts. Unsubscribe anytime.
           </p>
         </div>
       )}

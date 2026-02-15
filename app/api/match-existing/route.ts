@@ -22,16 +22,26 @@ export async function POST(req: NextRequest) {
 
     const supabase = getSupabaseAdmin();
 
-    // Get subscriber
+    // Get subscriber (include search_interests if available)
     const { data: subscriber } = await (supabase as any)
       .from('subscribers')
-      .select('id, org_goal')
+      .select('id, org_goal, search_interests')
       .eq('email', email.toLowerCase().trim())
       .single();
 
     if (!subscriber?.org_goal) {
       return NextResponse.json({ error: 'Subscriber not found or no goal set' }, { status: 404 });
     }
+
+    // Combine all interests into a single matching string
+    const allInterests: string[] = [subscriber.org_goal];
+    const searchInterests: string[] = subscriber.search_interests || [];
+    for (const interest of searchInterests) {
+      if (interest && interest.toLowerCase() !== subscriber.org_goal.toLowerCase()) {
+        allInterests.push(interest);
+      }
+    }
+    const combinedGoal = allInterests.join('; ');
 
     // Get all published legislation
     const { data: bills } = await (supabase as any)
@@ -74,7 +84,7 @@ export async function POST(req: NextRequest) {
       const results = await Promise.allSettled(
         batch.map(async (bill: any) => {
           const billText = bill.tldr || bill.title;
-          const result = await scoreBillForGoal(bill.title, billText, subscriber.org_goal);
+          const result = await scoreBillForGoal(bill.title, billText, combinedGoal);
           return { bill, result };
         }),
       );

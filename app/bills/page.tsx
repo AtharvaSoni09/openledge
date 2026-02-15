@@ -16,20 +16,39 @@ export default async function BillsPage() {
 
   const supabase = getSupabaseAdmin();
 
-  const { data: bills } = await (supabase as any)
-    .from('legislation')
-    .select('id, bill_id, title, seo_title, url_slug, tldr, source, state_code, created_at, latest_action, is_published, status, status_date')
-    .eq('is_published', true)
-    .order('created_at', { ascending: false })
-    .limit(100);
+  // Fetch bills + starred IDs in parallel
+  const [billsResult, subscriberResult] = await Promise.all([
+    (supabase as any)
+      .from('legislation')
+      .select('id, bill_id, title, seo_title, url_slug, tldr, source, state_code, created_at, latest_action, is_published, status, status_date')
+      .eq('is_published', true)
+      .order('created_at', { ascending: false })
+      .limit(100),
+    email
+      ? (supabase as any).from('subscribers').select('id').eq('email', email).single()
+      : Promise.resolve({ data: null }),
+  ]);
+
+  let starredIds: string[] = [];
+  if (subscriberResult.data?.id) {
+    const { data: starredRows } = await (supabase as any)
+      .from('starred_bills')
+      .select('legislation_id')
+      .eq('subscriber_id', subscriberResult.data.id);
+    starredIds = (starredRows || []).map((r: any) => r.legislation_id);
+  }
 
   return (
     <div className="h-screen flex flex-col bg-white">
       <Header email={email} />
-      <BillsClient bills={(bills || []).map((b: any) => ({
-        ...b,
-        status: b.status || parseStatusFromAction((b.latest_action as any)?.text),
-      }))} />
+      <BillsClient
+        bills={(billsResult.data || []).map((b: any) => ({
+          ...b,
+          status: b.status || parseStatusFromAction((b.latest_action as any)?.text),
+        }))}
+        email={email}
+        starredIds={starredIds}
+      />
     </div>
   );
 }

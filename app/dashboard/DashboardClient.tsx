@@ -16,6 +16,10 @@ import {
   CircleDot,
   Loader2,
   Sparkles,
+  Search,
+  X,
+  Plus,
+  Check,
 } from 'lucide-react';
 
 /* ── Types ─────────────────────────────────────────────────── */
@@ -37,6 +41,7 @@ interface Bill {
   match_summary?: string;
   match_why?: string;
   match_implications?: string;
+  match_source?: string;
   has_update?: boolean;
 }
 
@@ -51,7 +56,8 @@ interface Props {
   recentBills: Bill[];
   starredBills: Bill[];
   starredIds: string[];
-  totalBills?: number; // total published bills in DB — used to detect if matching is needed
+  totalBills?: number;
+  interests?: string[];
 }
 
 /* ── Status styling ────────────────────────────────────────── */
@@ -103,6 +109,7 @@ export default function DashboardClient({
   starredBills: initialStarred,
   starredIds: initialStarredIds,
   totalBills = 0,
+  interests = [],
 }: Props) {
   const router = useRouter();
   const [starred, setStarred] = useState<string[]>(initialStarredIds);
@@ -110,6 +117,16 @@ export default function DashboardClient({
   const [matchedBills] = useState<Bill[]>(initialMatched);
   const [isMatching, setIsMatching] = useState(false);
   const [matchingDone, setMatchingDone] = useState(false);
+  const [activeFilter, setActiveFilter] = useState<string | null>(null);
+
+  // Explore state
+  const [exploreQuery, setExploreQuery] = useState('');
+  const [exploreResults, setExploreResults] = useState<(Bill & { explore_score?: number })[]>([]);
+  const [isExploring, setIsExploring] = useState(false);
+  const [exploreSearched, setExploreSearched] = useState(false);
+  const [lastExploreQuery, setLastExploreQuery] = useState('');
+  const [addingToInterests, setAddingToInterests] = useState(false);
+  const [addedToInterests, setAddedToInterests] = useState(false);
 
   // Auto-match: if there are bills in the DB but 0 matches for this user, trigger matching
   useEffect(() => {
@@ -136,9 +153,15 @@ export default function DashboardClient({
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const filteredMatched = activeFilter
+    ? matchedBills.filter((b) =>
+      b.match_source?.toLowerCase() === activeFilter.toLowerCase(),
+    )
+    : matchedBills;
+
   const allLeftBills = [
-    ...matchedBills,
-    ...recentBills.map((b) => ({ ...b, match_score: undefined })),
+    ...filteredMatched,
+    ...(activeFilter ? [] : recentBills.map((b) => ({ ...b, match_score: undefined }))),
   ];
 
   const dismissUpdate = useCallback(async (billId: string) => {
@@ -154,7 +177,7 @@ export default function DashboardClient({
         legislation_id: billId,
         action: 'dismiss_update',
       }),
-    }).catch(() => {});
+    }).catch(() => { });
   }, [subscriber.email]);
 
   const toggleStar = useCallback(
@@ -193,6 +216,65 @@ export default function DashboardClient({
     [starred, subscriber.email],
   );
 
+  const handleExplore = useCallback(async () => {
+    if (!exploreQuery.trim() || isExploring) return;
+    setIsExploring(true);
+    setExploreSearched(false);
+    setExploreResults([]);
+    setAddedToInterests(false);
+    const q = exploreQuery.trim();
+    setLastExploreQuery(q);
+
+    try {
+      const res = await fetch('/api/explore', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: subscriber.email, query: q }),
+      });
+      const data = await res.json();
+      if (data.results) {
+        setExploreResults(data.results);
+      }
+    } catch {
+      // silent
+    } finally {
+      setIsExploring(false);
+      setExploreSearched(true);
+    }
+  }, [exploreQuery, isExploring, subscriber.email]);
+
+  const handleAddToInterests = useCallback(async () => {
+    if (!lastExploreQuery || addingToInterests || addedToInterests) return;
+    setAddingToInterests(true);
+
+    const billIds = exploreResults
+      .filter((b) => (b.explore_score ?? 0) >= 25)
+      .map((b) => b.id);
+    const scores: Record<string, number> = {};
+    for (const b of exploreResults) {
+      if (b.explore_score != null) scores[b.id] = b.explore_score;
+    }
+
+    try {
+      await fetch('/api/interests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: subscriber.email,
+          action: 'add',
+          topic: lastExploreQuery,
+          bill_ids: billIds,
+          scores,
+        }),
+      });
+      window.location.href = '/dashboard';
+    } catch {
+      // silent
+    } finally {
+      setAddingToInterests(false);
+    }
+  }, [lastExploreQuery, addingToInterests, addedToInterests, exploreResults, subscriber.email, router]);
+
   const updatedStarredCount = starredBills.filter((b) => b.has_update).length;
 
   return (
@@ -207,12 +289,51 @@ export default function DashboardClient({
             <span className="text-[11px] font-bold text-zinc-700 uppercase tracking-wider">
               Important Bills
             </span>
-            {matchedBills.length > 0 && (
+            {filteredMatched.length > 0 && (
               <span className="text-[10px] bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded-full font-bold ml-auto">
-                {matchedBills.length}
+                {filteredMatched.length}
               </span>
             )}
           </div>
+
+          {/* Interest filter */}
+          {interests.length > 1 && (
+            <div className="px-3 py-2 border-b border-zinc-100 flex items-center gap-1.5 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
+              <button
+                onClick={() => setActiveFilter(null)}
+                className={`shrink-0 text-[10px] font-bold px-2.5 py-1 rounded-full border transition-colors ${activeFilter === null
+                    ? 'bg-blue-600 text-white border-blue-600'
+                    : 'bg-white text-zinc-500 border-zinc-200 hover:border-zinc-300'
+                  }`}
+              >
+                All
+              </button>
+              {interests.map((interest) => {
+                const count = matchedBills.filter(
+                  (b) => b.match_source?.toLowerCase() === interest.toLowerCase(),
+                ).length;
+                return (
+                  <button
+                    key={interest}
+                    onClick={() =>
+                      setActiveFilter(activeFilter === interest ? null : interest)
+                    }
+                    className={`shrink-0 text-[10px] font-bold px-2.5 py-1 rounded-full border transition-colors ${activeFilter === interest
+                        ? 'bg-blue-600 text-white border-blue-600'
+                        : 'bg-white text-zinc-500 border-zinc-200 hover:border-zinc-300'
+                      }`}
+                  >
+                    {interest}
+                    {count > 0 && (
+                      <span className={`ml-1 ${activeFilter === interest ? 'text-blue-200' : 'text-zinc-300'}`}>
+                        {count}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
           <div className="flex-1 overflow-y-auto">
             {/* Auto-matching banner */}
@@ -237,13 +358,14 @@ export default function DashboardClient({
               <div className="p-6 text-center">
                 <FileText className="w-8 h-8 text-zinc-200 mx-auto mb-3" />
                 <p className="text-xs text-zinc-400 leading-relaxed">
-                  No bills yet. We&apos;re monitoring Congress for legislation
-                  related to your goal.
+                  {activeFilter
+                    ? `No bills matched for "${activeFilter}" yet.`
+                    : "No bills yet. We're monitoring Congress for legislation related to your goal."}
                 </p>
               </div>
             )}
 
-            {matchedBills.map((bill) => (
+            {filteredMatched.map((bill) => (
               <LeftBillRow
                 key={bill.id}
                 bill={bill}
@@ -253,7 +375,7 @@ export default function DashboardClient({
               />
             ))}
 
-            {matchedBills.length > 0 && recentBills.length > 0 && (
+            {filteredMatched.length > 0 && recentBills.length > 0 && !activeFilter && (
               <div className="px-4 py-2 bg-zinc-50/50 border-y border-zinc-100">
                 <span className="text-[10px] text-zinc-400 uppercase tracking-wider font-bold">
                   Recent legislation
@@ -261,7 +383,7 @@ export default function DashboardClient({
               </div>
             )}
 
-            {recentBills.map((bill) => (
+            {!activeFilter && recentBills.map((bill) => (
               <LeftBillRow
                 key={bill.id}
                 bill={bill}
@@ -273,30 +395,40 @@ export default function DashboardClient({
           </div>
         </div>
 
-        {/* ── CENTER: Map + Profile ─────────────────────── */}
+        {/* ── CENTER: Stats + Map + Explore ──────────── */}
         <div className="flex-1 flex flex-col overflow-y-auto">
-          <div className="px-6 py-4 border-b border-zinc-100 bg-gradient-to-r from-blue-50/40 to-transparent">
+          {/* Profile bar + Stats */}
+          <div className="px-6 py-3 border-b border-zinc-100 bg-gradient-to-r from-blue-50/40 to-transparent">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shrink-0">
-                <Target className="w-4 h-4 text-white" />
+              <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center shrink-0">
+                <Target className="w-3.5 h-3.5 text-white" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-[10px] text-zinc-400 uppercase tracking-wider font-bold">
                   Monitoring for
                 </p>
-                <p className="text-sm font-semibold text-zinc-900 truncate">
+                <p className="text-xs font-semibold text-zinc-900 truncate">
                   {subscriber.orgGoal}
                 </p>
               </div>
-              <div className="flex items-center gap-1.5 text-xs text-zinc-500 bg-white px-3 py-1.5 rounded-full border border-zinc-100">
+              <div className="flex items-center gap-1.5 text-[11px] text-zinc-500 bg-white px-2.5 py-1 rounded-full border border-zinc-100">
                 <Globe className="w-3 h-3" />
                 {subscriber.stateName}
               </div>
             </div>
+
+            {/* Stats row */}
+            <div className="flex items-center justify-center gap-6 mt-3">
+              <Stat label="Matched" value={matchedBills.length} color="text-blue-600" />
+              <Stat label="High Impact" value={matchedBills.filter((b) => (b.match_score ?? 0) >= 80).length} color="text-green-600" />
+              <Stat label="Starred" value={starred.length} color="text-amber-500" />
+              <Stat label="Total" value={allLeftBills.length} color="text-zinc-600" />
+            </div>
           </div>
 
-          <div className="flex-1 flex items-center justify-center p-6">
-            <div className="w-full max-w-2xl">
+          {/* Map — compact */}
+          <div className="flex items-center justify-center px-6 py-3">
+            <div className="w-full max-w-md">
               <USMap
                 selected={subscriber.stateFocus === 'US' ? null : subscriber.stateFocus}
                 interactive={false}
@@ -305,11 +437,126 @@ export default function DashboardClient({
             </div>
           </div>
 
-          <div className="px-6 py-3 border-t border-zinc-100 flex items-center justify-center gap-8">
-            <Stat label="Matched" value={matchedBills.length} color="text-blue-600" />
-            <Stat label="High Impact" value={matchedBills.filter((b) => (b.match_score ?? 0) >= 80).length} color="text-green-600" />
-            <Stat label="Starred" value={starred.length} color="text-amber-500" />
-            <Stat label="Total" value={allLeftBills.length} color="text-zinc-600" />
+          {/* ── Explore Section — always visible ──────── */}
+          <div className="flex-1 border-t border-zinc-100 flex flex-col min-h-0">
+            <div className="px-6 py-3 flex items-center gap-2 bg-zinc-50/50 border-b border-zinc-100">
+              <Search className="w-3.5 h-3.5 text-violet-600" />
+              <span className="text-[11px] font-bold text-zinc-700 uppercase tracking-wider">
+                Explore New Topics
+              </span>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-6 py-3 space-y-3">
+              <div className="flex gap-2">
+                <input
+                  value={exploreQuery}
+                  onChange={(e) => setExploreQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleExplore()}
+                  placeholder="e.g. artificial intelligence, veterans benefits..."
+                  className="flex-1 px-3 py-2 text-sm border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 bg-white"
+                />
+                <button
+                  onClick={handleExplore}
+                  disabled={!exploreQuery.trim() || isExploring}
+                  className="px-4 py-2 bg-violet-600 text-white rounded-lg text-sm font-semibold hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 shrink-0"
+                >
+                  {isExploring ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Search className="w-3.5 h-3.5" />
+                  )}
+                  {isExploring ? 'Searching...' : 'Search'}
+                </button>
+              </div>
+
+              {!isExploring && !exploreSearched && (
+                <p className="text-xs text-zinc-400 leading-relaxed">
+                  Search for legislation beyond your primary goal. If the results are useful, click
+                  &ldquo;Add to Interests&rdquo; to include them in your Important Bills feed.
+                </p>
+              )}
+
+              {isExploring && (
+                <div className="flex items-center gap-2 py-3">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-violet-600" />
+                  <span className="text-xs text-zinc-500">AI is scoring bills against &ldquo;{exploreQuery}&rdquo;...</span>
+                </div>
+              )}
+
+              {exploreSearched && !isExploring && exploreResults.length === 0 && (
+                <p className="text-xs text-zinc-400 py-2">No matching bills found for this topic.</p>
+              )}
+
+              {exploreResults.length > 0 && (
+                <>
+                  {/* Add to Interests button */}
+                  <button
+                    onClick={handleAddToInterests}
+                    disabled={addingToInterests || addedToInterests}
+                    className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors ${addedToInterests
+                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 cursor-default'
+                        : 'bg-violet-50 text-violet-700 border border-violet-200 hover:bg-violet-100 disabled:opacity-50'
+                      }`}
+                  >
+                    {addedToInterests ? (
+                      <>
+                        <Check className="w-3.5 h-3.5" />
+                        Added &ldquo;{lastExploreQuery}&rdquo; to Interests
+                      </>
+                    ) : addingToInterests ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        Adding...
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="w-3.5 h-3.5" />
+                        Add &ldquo;{lastExploreQuery}&rdquo; to Interests
+                      </>
+                    )}
+                  </button>
+
+                  <div className="rounded-lg border border-zinc-100 divide-y divide-zinc-50">
+                    {exploreResults.map((bill) => (
+                      <a
+                        key={bill.id}
+                        href={`/bill/${bill.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-start gap-3 px-3 py-2.5 hover:bg-violet-50/50 transition-colors group"
+                      >
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            toggleStar(bill);
+                          }}
+                          className={`shrink-0 mt-0.5 p-0.5 rounded transition-colors ${starred.includes(bill.id) ? 'text-amber-500' : 'text-zinc-400 hover:text-amber-500'
+                            }`}
+                        >
+                          <Star className="w-3 h-3" fill={starred.includes(bill.id) ? 'currentColor' : 'none'} strokeWidth={2} />
+                        </button>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5 mb-0.5">
+                            <span className="text-[9px] font-bold text-zinc-400 uppercase">{bill.bill_id}</span>
+                            <StatusBadge status={bill.status} />
+                            {bill.explore_score != null && (
+                              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border ${scoreBg(bill.explore_score)} ${scoreColor(bill.explore_score)}`}>
+                                {bill.explore_score}%
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs font-medium text-zinc-800 group-hover:text-violet-600 leading-snug line-clamp-2">
+                            {bill.seo_title || bill.title}
+                          </p>
+                        </div>
+                        <ChevronRight className="w-3 h-3 text-zinc-200 shrink-0 mt-1" />
+                      </a>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
 
@@ -366,8 +613,8 @@ export default function DashboardClient({
 function Stat({ label, value, color }: { label: string; value: number; color: string }) {
   return (
     <div className="text-center">
-      <p className={`text-lg font-black ${color}`}>{value}</p>
-      <p className="text-[10px] text-zinc-400 uppercase tracking-wider font-bold">{label}</p>
+      <p className={`text-base font-black ${color}`}>{value}</p>
+      <p className="text-[9px] text-zinc-400 uppercase tracking-wider font-bold">{label}</p>
     </div>
   );
 }
@@ -403,12 +650,11 @@ function LeftBillRow({
             e.stopPropagation();
             onToggleStar();
           }}
-          className={`shrink-0 mt-0.5 p-0.5 rounded transition-colors ${
-            isStarred ? 'text-amber-500 hover:text-amber-600' : 'text-zinc-200 hover:text-amber-400'
-          }`}
+          className={`shrink-0 mt-0.5 p-0.5 rounded transition-colors ${isStarred ? 'text-amber-500 hover:text-amber-600' : 'text-zinc-400 hover:text-amber-500'
+            }`}
           title={isStarred ? 'Unstar' : 'Star this bill'}
         >
-          <Star className="w-3.5 h-3.5" fill={isStarred ? 'currentColor' : 'none'} />
+          <Star className="w-3.5 h-3.5" fill={isStarred ? 'currentColor' : 'none'} strokeWidth={2} />
         </button>
 
         <a href={`/bill/${bill.id}`} target="_blank" rel="noopener noreferrer" className="flex-1 min-w-0">
@@ -458,7 +704,7 @@ function RightBillRow({
           className="shrink-0 mt-0.5 text-amber-500 hover:text-amber-600 transition-colors p-0.5"
           title="Unstar"
         >
-          <Star className="w-3.5 h-3.5" fill="currentColor" />
+          <Star className="w-3.5 h-3.5" fill="currentColor" strokeWidth={2} />
         </button>
 
         <a href={`/bill/${bill.id}`} target="_blank" rel="noopener noreferrer" className="flex-1 min-w-0">

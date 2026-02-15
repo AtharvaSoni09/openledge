@@ -4,7 +4,7 @@ import { normalizeStateCode } from '@/lib/utils/states';
 
 export async function POST(req: NextRequest) {
   try {
-    const { email, org_goal, state_focus } = await req.json();
+    const { email, org_goal, state_focus, accepted_terms_at } = await req.json();
 
     // Validate
     if (!email || typeof email !== 'string' || !email.includes('@') || email.length < 5) {
@@ -29,13 +29,16 @@ export async function POST(req: NextRequest) {
 
     if (existing) {
       // Update their profile with the new goal + state
+      const updatePayload: any = {
+        org_goal: org_goal.trim(),
+        state_focus: stateCode,
+        last_seen: new Date().toISOString(),
+      };
+      if (accepted_terms_at) updatePayload.accepted_terms_at = accepted_terms_at;
+
       const { error: updateError } = await (supabase as any)
         .from('subscribers')
-        .update({
-          org_goal: org_goal.trim(),
-          state_focus: stateCode,
-          last_seen: new Date().toISOString(),
-        })
+        .update(updatePayload)
         .eq('id', existing.id);
 
       if (updateError) {
@@ -52,6 +55,8 @@ export async function POST(req: NextRequest) {
           state_focus: stateCode,
           subscription_source: 'onboarding',
           preferences: { frequency: 'realtime' },
+          accepted_terms_at: accepted_terms_at || new Date().toISOString(),
+          search_interests: [org_goal.trim()],
         });
 
       if (insertError) {

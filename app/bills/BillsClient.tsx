@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { FileText, Search } from 'lucide-react';
+import { useState, useCallback } from 'react';
+import { FileText, Search, Star } from 'lucide-react';
 
 const STATUS_STYLES: Record<string, { bg: string; text: string }> = {
   'Signed into Law': { bg: 'bg-emerald-50 border-emerald-200', text: 'text-emerald-700' },
@@ -33,8 +33,40 @@ interface Bill {
   status: string | null;
 }
 
-export default function BillsClient({ bills }: { bills: Bill[] }) {
+interface Props {
+  bills: Bill[];
+  email: string | null;
+  starredIds: string[];
+}
+
+export default function BillsClient({ bills, email, starredIds: initialStarredIds }: Props) {
   const [search, setSearch] = useState('');
+  const [starred, setStarred] = useState<string[]>(initialStarredIds);
+
+  const toggleStar = useCallback(
+    async (billId: string) => {
+      if (!email) return;
+      const isStarred = starred.includes(billId);
+      const action = isStarred ? 'unstar' : 'star';
+
+      setStarred((prev) =>
+        isStarred ? prev.filter((id) => id !== billId) : [...prev, billId],
+      );
+
+      try {
+        await fetch('/api/star', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, legislation_id: billId, action }),
+        });
+      } catch {
+        setStarred((prev) =>
+          isStarred ? [...prev, billId] : prev.filter((id) => id !== billId),
+        );
+      }
+    },
+    [starred, email],
+  );
 
   const filtered = bills.filter((b) => {
     const q = search.toLowerCase();
@@ -71,40 +103,63 @@ export default function BillsClient({ bills }: { bills: Bill[] }) {
           {filtered.map((bill) => {
             const statusLabel = bill.status || 'Introduced';
             const style = STATUS_STYLES[statusLabel] || STATUS_STYLES['Introduced'];
+            const isStarred = starred.includes(bill.id);
 
             return (
-              <a
+              <div
                 key={bill.id}
-                href={`/bill/${bill.id}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block py-4 hover:bg-zinc-50 -mx-3 px-3 rounded transition-colors group"
+                className="flex items-start gap-3 py-4 hover:bg-zinc-50 -mx-3 px-3 rounded transition-colors group"
               >
-                <div className="flex items-center gap-2 mb-1 flex-wrap">
-                  <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
-                    {bill.bill_id}
-                  </span>
-                  <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded-full border uppercase tracking-wider ${style.bg} ${style.text}`}>
-                    {statusLabel}
-                  </span>
-                  {bill.source === 'state' && bill.state_code && (
-                    <span className="text-[10px] font-bold text-purple-500 uppercase">
-                      {bill.state_code}
-                    </span>
-                  )}
-                  <span className="text-[10px] text-zinc-300 ml-auto">
-                    {new Date(bill.created_at).toLocaleDateString()}
-                  </span>
-                </div>
-                <h3 className="text-sm font-semibold text-zinc-900 group-hover:text-blue-600 transition-colors leading-snug">
-                  {bill.seo_title || bill.title}
-                </h3>
-                {bill.tldr && (
-                  <p className="text-xs text-zinc-500 mt-1 line-clamp-2 leading-relaxed">
-                    {bill.tldr}
-                  </p>
+                {email && (
+                  <button
+                    onClick={() => toggleStar(bill.id)}
+                    className={`shrink-0 mt-1 p-0.5 rounded transition-colors ${
+                      isStarred
+                        ? 'text-amber-500 hover:text-amber-600'
+                        : 'text-zinc-400 hover:text-amber-500'
+                    }`}
+                    title={isStarred ? 'Unstar' : 'Star this bill'}
+                  >
+                    <Star
+                      className="w-4 h-4"
+                      fill={isStarred ? 'currentColor' : 'none'}
+                      strokeWidth={2}
+                    />
+                  </button>
                 )}
-              </a>
+
+                <a
+                  href={`/bill/${bill.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 min-w-0"
+                >
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
+                    <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
+                      {bill.bill_id}
+                    </span>
+                    <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded-full border uppercase tracking-wider ${style.bg} ${style.text}`}>
+                      {statusLabel}
+                    </span>
+                    {bill.source === 'state' && bill.state_code && (
+                      <span className="text-[10px] font-bold text-purple-500 uppercase">
+                        {bill.state_code}
+                      </span>
+                    )}
+                    <span className="text-[10px] text-zinc-300 ml-auto">
+                      {new Date(bill.created_at).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <h3 className="text-sm font-semibold text-zinc-900 group-hover:text-blue-600 transition-colors leading-snug">
+                    {bill.seo_title || bill.title}
+                  </h3>
+                  {bill.tldr && (
+                    <p className="text-xs text-zinc-500 mt-1 line-clamp-2 leading-relaxed">
+                      {bill.tldr}
+                    </p>
+                  )}
+                </a>
+              </div>
             );
           })}
 
