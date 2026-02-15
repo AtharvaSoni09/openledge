@@ -5,6 +5,8 @@ import { getCategoryById, categories, categorizeBill } from '@/lib/utils/categor
 import { notFound } from 'next/navigation';
 import { Pagination } from '@/components/ui/pagination-new';
 
+export const dynamic = 'force-dynamic';
+
 interface PageProps {
   params: Promise<{ category: string; page?: string }>;
   searchParams: Promise<{ page?: string }>;
