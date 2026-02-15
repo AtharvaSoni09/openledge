@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import Link from 'next/link';
 import { ExternalLink, ArrowLeft, Newspaper, BookOpen, Target, CircleDot } from 'lucide-react';
@@ -46,6 +47,7 @@ interface Props {
     why_it_matters: string | null;
     implications: string | null;
   } | null;
+  email: string | null;
 }
 
 function scoreColor(score: number) {
@@ -55,9 +57,32 @@ function scoreColor(score: number) {
   return 'bg-zinc-50 text-zinc-500 border-zinc-200';
 }
 
-export default function BillArticle({ bill, matchData }: Props) {
+export default function BillArticle({ bill, matchData, email }: Props) {
   const news: any[] = Array.isArray(bill.news_context) ? bill.news_context : [];
   const policy: any[] = Array.isArray(bill.policy_research) ? bill.policy_research : [];
+
+  const [localMatch, setLocalMatch] = useState(matchData);
+  const [loadingExplanation, setLoadingExplanation] = useState(false);
+
+  useEffect(() => {
+    // If we have a match with score >= 25 but missing explanation, generate it
+    if (localMatch && localMatch.match_score >= 25 && !localMatch.why_it_matters && email && !loadingExplanation) {
+      setLoadingExplanation(true);
+      fetch('/api/match-explain', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bill_id: bill.id, email }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.why_it_matters) {
+            setLocalMatch((prev) => prev ? { ...prev, ...data } : data);
+          }
+        })
+        .catch(() => { }) // silent fail
+        .finally(() => setLoadingExplanation(false));
+    }
+  }, [localMatch, email, bill.id]);
 
   return (
     <div className="flex-1 overflow-y-auto">
@@ -81,9 +106,9 @@ export default function BillArticle({ bill, matchData }: Props) {
                 {bill.state_code}
               </span>
             )}
-            {matchData && (
-              <span className={`text-xs font-bold px-2 py-0.5 rounded border ${scoreColor(matchData.match_score)}`}>
-                {matchData.match_score}% match
+            {localMatch && (
+              <span className={`text-xs font-bold px-2 py-0.5 rounded border ${scoreColor(localMatch.match_score)}`}>
+                {localMatch.match_score}% match
               </span>
             )}
             {bill.congress_gov_url && (
@@ -144,25 +169,35 @@ export default function BillArticle({ bill, matchData }: Props) {
         </div>
 
         {/* Relevance card (if matched to user's goal) */}
-        {matchData && matchData.match_score >= 40 && (
-          <div className="mb-8 border border-blue-100 bg-blue-50/50 rounded-lg p-5 space-y-3">
+        {localMatch && localMatch.match_score >= 25 && (
+          <div className="mb-8 border border-blue-100 bg-blue-50/50 rounded-lg p-5 space-y-3 min-h-[120px]">
             <div className="flex items-center gap-2">
               <Target className="w-4 h-4 text-blue-600" />
               <h2 className="text-xs font-bold text-blue-600 uppercase tracking-wider">
                 Relevance to your goal
               </h2>
             </div>
-            {matchData.why_it_matters && (
-              <div>
-                <p className="text-[10px] font-bold text-blue-500 uppercase tracking-wider mb-1">Why it matters</p>
-                <p className="text-sm text-blue-900 leading-relaxed">{matchData.why_it_matters}</p>
+            {loadingExplanation ? (
+              <div className="space-y-3 animate-pulse">
+                <div className="h-3 bg-blue-200 rounded w-3/4"></div>
+                <div className="h-3 bg-blue-200 rounded w-1/2"></div>
+                <p className="text-xs text-blue-400 italic">Generating analysis...</p>
               </div>
-            )}
-            {matchData.implications && (
-              <div>
-                <p className="text-[10px] font-bold text-blue-500 uppercase tracking-wider mb-1">Implications</p>
-                <p className="text-sm text-blue-900 leading-relaxed">{matchData.implications}</p>
-              </div>
+            ) : (
+              <>
+                {localMatch.why_it_matters && (
+                  <div>
+                    <p className="text-[10px] font-bold text-blue-500 uppercase tracking-wider mb-1">Why it matters</p>
+                    <p className="text-sm text-blue-900 leading-relaxed">{localMatch.why_it_matters}</p>
+                  </div>
+                )}
+                {localMatch.implications && (
+                  <div>
+                    <p className="text-[10px] font-bold text-blue-500 uppercase tracking-wider mb-1">Implications</p>
+                    <p className="text-sm text-blue-900 leading-relaxed">{localMatch.implications}</p>
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}

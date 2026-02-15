@@ -44,10 +44,10 @@ export default async function BillDetailPage({ params }: { params: Promise<{ id:
       .single(),
     email
       ? (supabase as any)
-          .from('subscribers')
-          .select('id, org_goal')
-          .eq('email', email)
-          .single()
+        .from('subscribers')
+        .select('id, org_goal')
+        .eq('email', email)
+        .single()
       : Promise.resolve({ data: null }),
   ]);
 
@@ -73,7 +73,7 @@ export default async function BillDetailPage({ params }: { params: Promise<{ id:
   return (
     <div className="h-screen flex flex-col bg-white">
       <Header email={email} />
-      <BillArticle bill={bill} matchData={matchData} />
+      <BillArticle bill={bill} matchData={matchData} email={email} />
     </div>
   );
 }
