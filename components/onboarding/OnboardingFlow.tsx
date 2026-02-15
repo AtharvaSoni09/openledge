@@ -34,7 +34,7 @@ export default function OnboardingFlow() {
   /** Match existing bills against the user's goal (non-blocking) */
   const matchExistingBills = async (userEmail: string) => {
     try {
-      setAnalysisProgress('Analyzing existing legislation...');
+      setAnalysisProgress('Analyzing existing legislation... (ETA: ~3-5 mins)');
       const res = await fetch('/api/match-existing', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -240,11 +240,10 @@ export default function OnboardingFlow() {
 
           <button
             onClick={() => setStateFocus('US')}
-            className={`w-full py-3 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 border transition-colors ${
-              stateFocus === 'US'
+            className={`w-full py-3 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 border transition-colors ${stateFocus === 'US'
                 ? 'bg-blue-600 text-white border-blue-600'
                 : 'bg-white text-zinc-700 border-zinc-200 hover:bg-blue-50 hover:border-blue-200'
-            }`}
+              }`}
           >
             <Globe className="w-4 h-4" />
             All / Nationally (Federal legislation)
