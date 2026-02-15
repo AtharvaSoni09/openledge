@@ -214,7 +214,7 @@ export default function InterestsClient({ email, orgGoal, searchInterests: initi
                     {isAddingAll ? (
                       <>
                         <Loader2 className="w-3 h-3 animate-spin" />
-                        Adding {addAllProgress?.current}/{addAllProgress?.total}...
+                        Adding {addAllProgress?.current}/{addAllProgress?.total}... (ETA: ~3 min/topic)
                       </>
                     ) : (
                       <>
@@ -244,10 +244,10 @@ export default function InterestsClient({ email, orgGoal, searchInterests: initi
                     <div
                       key={topic}
                       className={`inline-flex items-center gap-1.5 pl-3 pr-1.5 py-1.5 rounded-full text-sm border transition-colors ${isAdded
-                          ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
-                          : isAdding
-                            ? 'bg-violet-50 border-violet-300 text-violet-700'
-                            : 'bg-white border-zinc-200 text-zinc-800 hover:border-violet-300'
+                        ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                        : isAdding
+                          ? 'bg-violet-50 border-violet-300 text-violet-700'
+                          : 'bg-white border-zinc-200 text-zinc-800 hover:border-violet-300'
                         }`}
                     >
                       <span className="font-medium">{topic}</span>
