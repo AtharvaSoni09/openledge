@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Create new subscriber
-    const { error: insertError } = await supabase
+    const { error: insertError } = await (supabase as any)
       .from('subscribers')
       .insert({
         email: email.toLowerCase(),

@@ -72,7 +72,7 @@ export async function GET(req: NextRequest) {
             .select('state_focus')
             .not('state_focus', 'is', null);
 
-        const uniqueStates = [...new Set((stateFocusRows || []).map((r: any) => r.state_focus as string))];
+        const uniqueStates: string[] = [...new Set<string>((stateFocusRows || []).map((r: any) => r.state_focus as string))];
         console.log(`Subscriber states: ${uniqueStates.join(', ') || 'none'}`);
 
         interface SimpleBill {

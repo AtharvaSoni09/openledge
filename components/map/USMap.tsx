@@ -25,7 +25,7 @@ export default function USMap({
       {/* Tooltip */}
       {hovered && interactive && (
         <div className="absolute top-2 left-1/2 -translate-x-1/2 bg-zinc-900 text-white text-xs px-3 py-1.5 rounded-full shadow-lg pointer-events-none z-10 font-sans tracking-wide">
-          {usaMapData.locations.find((l) => l.id === hovered)?.name ?? hovered.toUpperCase()}
+          {usaMapData.locations.find((l: any) => l.id === hovered)?.name ?? hovered.toUpperCase()}
         </div>
       )}
 
@@ -36,7 +36,7 @@ export default function USMap({
         role="img"
         aria-label="Map of the United States"
       >
-        {usaMapData.locations.map((location) => {
+        {usaMapData.locations.map((location: any) => {
           const code = location.id.toUpperCase();
           const isSelected = selected === code;
           const isHovered = hovered === location.id;

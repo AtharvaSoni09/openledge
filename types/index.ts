@@ -177,7 +177,6 @@ export interface Database {
           created_at?: string
         }
       }
-    }
       starred_bills: {
         Row: {
           id: string
