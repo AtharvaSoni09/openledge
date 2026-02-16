@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
       .select('id, bill_id, title, tldr')
       .eq('is_published', true)
       .order('created_at', { ascending: false })
-      .limit(100);
+      .limit(25);
 
     if (!bills || bills.length === 0) {
       return NextResponse.json({ matched: 0, total: 0, message: 'No bills in database' });
@@ -113,9 +113,9 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // 4s delay between batches to stay under 30 RPM (approx 24 req/min)
+      // 3s delay between batches to stay under 30 RPM (approx 24 req/min)
       if (i + BATCH_SIZE < billsToScore.length) {
-        await new Promise((r) => setTimeout(r, 4000));
+        await new Promise((r) => setTimeout(r, 3000));
       }
     }
 
