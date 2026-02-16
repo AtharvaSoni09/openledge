@@ -64,25 +64,43 @@ export default function BillArticle({ bill, matchData, email }: Props) {
   const [localMatch, setLocalMatch] = useState(matchData);
   const [loadingExplanation, setLoadingExplanation] = useState(false);
 
+  const [explanationError, setExplanationError] = useState(false);
+
   useEffect(() => {
     // If we have a match with score >= 25 but missing explanation, generate it
-    if (localMatch && localMatch.match_score >= 25 && !localMatch.why_it_matters && email && !loadingExplanation) {
+    if (localMatch && localMatch.match_score >= 25 && !localMatch.why_it_matters && email && !loadingExplanation && !explanationError) {
       setLoadingExplanation(true);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+
       fetch('/api/match-explain', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ bill_id: bill.id, email }),
+        signal: controller.signal,
       })
-        .then((res) => res.json())
+        .then((res) => {
+          if (!res.ok) throw new Error('Failed to fetch');
+          return res.json();
+        })
         .then((data) => {
+          clearTimeout(timeoutId);
           if (data.why_it_matters) {
             setLocalMatch((prev) => prev ? { ...prev, ...data } : data);
+          } else {
+            setExplanationError(true);
           }
         })
-        .catch(() => { }) // silent fail
+        .catch((err) => {
+          clearTimeout(timeoutId);
+          console.error('Explanation fetch failed:', err);
+          setExplanationError(true);
+        })
         .finally(() => setLoadingExplanation(false));
+
+      return () => clearTimeout(timeoutId);
     }
-  }, [localMatch, email, bill.id]);
+  }, [localMatch, email, bill.id, explanationError]);
 
   return (
     <div className="flex-1 overflow-y-auto">
@@ -183,6 +201,8 @@ export default function BillArticle({ bill, matchData, email }: Props) {
                 <div className="h-3 bg-blue-200 rounded w-1/2"></div>
                 <p className="text-xs text-blue-400 italic">Generating analysis...</p>
               </div>
+            ) : explanationError ? (
+              <p className="text-xs text-red-400 italic">Analysis unavailable. Please try again later.</p>
             ) : (
               <>
                 {localMatch.why_it_matters && (

@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
       .select('id, bill_id, title, tldr')
       .eq('is_published', true)
       .order('created_at', { ascending: false })
-      .limit(25);
+      .limit(50);
 
     if (!bills || bills.length === 0) {
       return NextResponse.json({ matched: 0, total: 0, message: 'No bills in database' });
@@ -73,12 +73,19 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Score bills in parallel batches of 2 (to respect Groq rate limits)
-    const BATCH_SIZE = 2;
+    // Score bills in parallel batches
+    const BATCH_SIZE = 5;
     let newMatches = 0;
     let scored = 0;
+    const startTime = Date.now();
 
     for (let i = 0; i < billsToScore.length; i += BATCH_SIZE) {
+      // Timeout safeguard: if running for > 50s, stop to avoid Vercel timeout (60s limit)
+      if (Date.now() - startTime > 50000) {
+        console.log('Match-existing: Timeout safeguard triggered. Stopping early.');
+        break;
+      }
+
       const batch = billsToScore.slice(i, i + BATCH_SIZE);
 
       const results = await Promise.allSettled(
@@ -113,9 +120,9 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // 3s delay between batches to stay under 30 RPM (approx 24 req/min)
+      // 2s delay between batches to stay under rate limits while processing faster
       if (i + BATCH_SIZE < billsToScore.length) {
-        await new Promise((r) => setTimeout(r, 3000));
+        await new Promise((r) => setTimeout(r, 2000));
       }
     }
 
