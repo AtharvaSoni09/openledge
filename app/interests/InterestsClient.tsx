@@ -220,7 +220,7 @@ export default function InterestsClient({ email, orgGoal, searchInterests: initi
                     {isAddingAll ? (
                       <>
                         <Loader2 className="w-3 h-3 animate-spin" />
-                        Adding {addAllProgress?.current}/{addAllProgress?.total}... (ETA: ~3 min/topic)
+                        Adding {addAllProgress?.current}/{addAllProgress?.total}...
                       </>
                     ) : (
                       <>
@@ -245,9 +245,15 @@ export default function InterestsClient({ email, orgGoal, searchInterests: initi
                   </div>
                   <div className="w-full bg-violet-100 rounded-full h-1.5 overflow-hidden">
                     <div
-                      className={`bg-violet-600 h-1.5 rounded-full transition-all duration-1000 ${addingSuggestion ? 'animate-progress-indeterminate w-full origin-left scale-x-50' : ''
+                      className={`bg-violet-600 h-1.5 rounded-full transition-all duration-1000 ${addingSuggestion ? 'animate-pulse w-full' : ''
                         }`}
-                      style={isAddingAll && addAllProgress ? { width: `${(addAllProgress.current / addAllProgress.total) * 100}%` } : {}}
+                      style={
+                        isAddingAll && addAllProgress
+                          ? { width: `${(addAllProgress.current / addAllProgress.total) * 100}%` }
+                          : addingSuggestion
+                            ? { width: '100%' }
+                            : {}
+                      }
                     />
                   </div>
                 </div>
