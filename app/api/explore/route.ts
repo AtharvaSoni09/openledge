@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
 
     // AI-score all bills against the query in batches
     const scored: { bill: any; score: number }[] = [];
-    const BATCH_SIZE = 2; // Reduced to 2 to stay under 30 RPM limit
+    const BATCH_SIZE = 5; // Optimized for speed (5 concurrent requests)
 
     for (let i = 0; i < bills.length; i += BATCH_SIZE) {
       const batch = bills.slice(i, i + BATCH_SIZE);
@@ -60,9 +60,9 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // 4s delay between batches to stay under 30 RPM (approx 24 req/min)
+      // 2s delay between batches to stay under rate limits (approx 60 RPM burst)
       if (i + BATCH_SIZE < bills.length) {
-        await new Promise((r) => setTimeout(r, 4000));
+        await new Promise((r) => setTimeout(r, 2000));
       }
     }
 
