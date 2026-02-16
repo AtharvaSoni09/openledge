@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import USMap from '@/components/map/USMap';
 import Header from '@/components/layout/header';
@@ -153,6 +153,14 @@ export default function DashboardClient({
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const sortedInterests = useMemo(() => {
+    return [...interests].sort((a, b) => {
+      const countA = matchedBills.filter(bill => bill.match_source?.toLowerCase() === a.toLowerCase()).length;
+      const countB = matchedBills.filter(bill => bill.match_source?.toLowerCase() === b.toLowerCase()).length;
+      return countB - countA; // Descending
+    });
+  }, [interests, matchedBills]);
+
   const filteredMatched = activeFilter
     ? matchedBills.filter((b) =>
       b.match_source?.toLowerCase() === activeFilter.toLowerCase(),
@@ -297,18 +305,18 @@ export default function DashboardClient({
           </div>
 
           {/* Interest filter */}
-          {interests.length > 1 && (
+          {sortedInterests.length > 1 && (
             <div className="px-3 py-2 border-b border-zinc-100 flex items-center gap-1.5 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
               <button
                 onClick={() => setActiveFilter(null)}
                 className={`shrink-0 text-[10px] font-bold px-2.5 py-1 rounded-full border transition-colors ${activeFilter === null
-                    ? 'bg-blue-600 text-white border-blue-600'
-                    : 'bg-white text-zinc-500 border-zinc-200 hover:border-zinc-300'
+                  ? 'bg-blue-600 text-white border-blue-600'
+                  : 'bg-white text-zinc-500 border-zinc-200 hover:border-zinc-300'
                   }`}
               >
                 All
               </button>
-              {interests.map((interest) => {
+              {sortedInterests.map((interest) => {
                 const count = matchedBills.filter(
                   (b) => b.match_source?.toLowerCase() === interest.toLowerCase(),
                 ).length;
@@ -319,8 +327,8 @@ export default function DashboardClient({
                       setActiveFilter(activeFilter === interest ? null : interest)
                     }
                     className={`shrink-0 text-[10px] font-bold px-2.5 py-1 rounded-full border transition-colors ${activeFilter === interest
-                        ? 'bg-blue-600 text-white border-blue-600'
-                        : 'bg-white text-zinc-500 border-zinc-200 hover:border-zinc-300'
+                      ? 'bg-blue-600 text-white border-blue-600'
+                      : 'bg-white text-zinc-500 border-zinc-200 hover:border-zinc-300'
                       }`}
                   >
                     {interest}
@@ -494,8 +502,8 @@ export default function DashboardClient({
                     onClick={handleAddToInterests}
                     disabled={addingToInterests || addedToInterests}
                     className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors ${addedToInterests
-                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 cursor-default'
-                        : 'bg-violet-50 text-violet-700 border border-violet-200 hover:bg-violet-100 disabled:opacity-50'
+                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 cursor-default'
+                      : 'bg-violet-50 text-violet-700 border border-violet-200 hover:bg-violet-100 disabled:opacity-50'
                       }`}
                   >
                     {addedToInterests ? (
