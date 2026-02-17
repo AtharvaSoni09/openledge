@@ -28,23 +28,8 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (existing) {
-      // Update their profile with the new goal + state
-      const updatePayload: any = {
-        org_goal: org_goal.trim(),
-        state_focus: stateCode,
-        last_seen: new Date().toISOString(),
-      };
-      if (accepted_terms_at) updatePayload.accepted_terms_at = accepted_terms_at;
-
-      const { error: updateError } = await (supabase as any)
-        .from('subscribers')
-        .update(updatePayload)
-        .eq('id', existing.id);
-
-      if (updateError) {
-        console.error('Onboard update error:', updateError);
-        return NextResponse.json({ error: 'Failed to update profile' }, { status: 500 });
-      }
+      // User exists: Don't update their goal/state. Just log them in.
+      // We'll fall through to set cookies, but return a specific flag.
     } else {
       // Create new subscriber with goal + state
       const { error: insertError } = await (supabase as any)
@@ -71,7 +56,8 @@ export async function POST(req: NextRequest) {
 
     const response = NextResponse.json({
       success: true,
-      message: existing ? 'Profile updated' : 'Profile created',
+      existing: !!existing,
+      message: existing ? 'Welcome back' : 'Profile created',
     });
 
     response.cookies.set('is_authenticated', 'true', {

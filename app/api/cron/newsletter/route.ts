@@ -15,6 +15,9 @@ const SCORE_THRESHOLD = 60; // Only alert on matches >= this score
 
 export async function GET(req: NextRequest) {
     try {
+        // TEMPORARILY DISABLED
+        return NextResponse.json({ message: 'Email sending temporarily disabled' });
+
         const resend = new Resend(process.env.RESEND_API_KEY);
 
         // Security

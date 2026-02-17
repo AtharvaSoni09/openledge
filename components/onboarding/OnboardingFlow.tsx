@@ -73,6 +73,16 @@ export default function OnboardingFlow() {
       if (!res.ok) throw new Error(data.error || 'Something went wrong');
 
       // Show analyzing screen, match existing bills, then redirect
+      if (data.existing) {
+        // User already exists — redirect immediately without re-analyzing
+        setSubmitting(false);
+        // Optional: show a toast here if you have a toast component
+        router.push('/dashboard');
+        router.refresh();
+        return;
+      }
+
+      // Show analyzing screen, match existing bills, then redirect
       setStep('analyzing');
       setSubmitting(false);
       await matchExistingBills(email.toLowerCase().trim());
