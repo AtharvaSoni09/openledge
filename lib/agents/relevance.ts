@@ -2,7 +2,7 @@
  * AI Relevance Engine — "Match-Maker"
  *
  * Given a bill (title + summary) and a user's organizational goal,
- * uses Groq (Llama 3.3 70B) to score relevance 0–100 and generate
+ * uses Groq (Llama 3.3 70B / 8B) to score relevance 0–100 and generate
  * a personalised explanation when the score is high enough.
  *
  * Includes built-in retry logic for 429 rate-limit errors.
@@ -130,23 +130,25 @@ export async function fullRelevanceCheck(
   try {
     const completion = await callWithRetry(() =>
       getGroq().chat.completions.create({
+        // Keep 70B for the detailed explanation as it's smarter
         model: 'llama-3.3-70b-versatile',
         messages: [
           {
             role: 'system',
-            content: `You are a legislative analyst for an AI monitoring platform called "Ledge". A user's goal or area of interest is provided — it may be a short phrase like "education" or a detailed mission statement. Interpret it broadly.
+            content: `You are a legislative analyst for "Ledge".
+Goal: "${orgGoal}"
 
-For the given bill, return a JSON object with exactly these fields:
-- "match_score": integer 0-100 (how much this bill impacts the goal; use the same scoring rubric: 90-100 = directly addresses, 70-89 = strongly related, 50-69 = meaningful indirect connection)
-- "summary": exactly 2 sentences summarizing the bill
-- "why_it_matters": 2-3 sentences explaining why this bill matters specifically to someone focused on the user's goal
-- "implications": 2-3 sentences on potential downstream effects
-
-Return ONLY valid JSON, no markdown fences, no extra text.`,
+For the bill, return JSON:
+{
+  "match_score": integer 0-100,
+  "summary": "2 sentences summarizing bill",
+  "why_it_matters": "2-3 sentences explaining relevance to goal",
+  "implications": "2-3 sentences on downstream effects"
+}`,
           },
           {
             role: 'user',
-            content: `Bill Title: "${billTitle}"\nBill Summary: "${billSummary}"\n\nUser's Goal/Interest: "${orgGoal}"`,
+            content: `Bill: "${billTitle}"\nSummary: "${billSummary}"`,
           },
         ],
         response_format: { type: 'json_object' },
@@ -161,7 +163,9 @@ Return ONLY valid JSON, no markdown fences, no extra text.`,
     const parsed = JSON.parse(content) as RelevanceResult;
 
     // Clamp score
-    parsed.match_score = Math.min(100, Math.max(0, Math.round(parsed.match_score)));
+    if (parsed.match_score) {
+      parsed.match_score = Math.min(100, Math.max(0, Math.round(parsed.match_score)));
+    }
 
     return parsed;
   } catch (error) {
