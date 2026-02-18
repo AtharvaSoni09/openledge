@@ -6,14 +6,15 @@ import { HelpCircle, FileText, LogOut, LogIn, ScrollText, Heart } from 'lucide-r
 
 interface HeaderProps {
   email?: string | null;
+  onOpenSettings?: () => void;
 }
 
-export default function Header({ email }: HeaderProps) {
+export default function Header({ email, onOpenSettings }: HeaderProps) {
   const pathname = usePathname();
   const router = useRouter();
 
   const handleSignOut = async () => {
-    await fetch('/api/auth/sign-out', { method: 'POST' }).catch(() => {});
+    await fetch('/api/auth/sign-out', { method: 'POST' }).catch(() => { });
     document.cookie = 'is_authenticated=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
     document.cookie = 'subscriber_email=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
     router.push('/');
@@ -25,11 +26,10 @@ export default function Header({ email }: HeaderProps) {
     return (
       <Link
         href={href}
-        className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-md transition-colors ${
-          active
-            ? 'bg-zinc-100 text-zinc-900'
-            : 'text-zinc-500 hover:text-zinc-800 hover:bg-zinc-50'
-        }`}
+        className={`flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-md transition-colors ${active
+          ? 'bg-zinc-100 text-zinc-900'
+          : 'text-zinc-500 hover:text-zinc-800 hover:bg-zinc-50'
+          }`}
       >
         <Icon className="w-3.5 h-3.5" />
         {label}
@@ -60,7 +60,12 @@ export default function Header({ email }: HeaderProps) {
       <div className="flex items-center gap-3">
         {email ? (
           <>
-            <span className="text-[11px] text-zinc-400 hidden sm:block">{email}</span>
+            <button
+              onClick={onOpenSettings}
+              className="text-[11px] text-zinc-400 hidden sm:block hover:text-zinc-600 transition-colors"
+            >
+              {email}
+            </button>
             <button
               onClick={handleSignOut}
               className="flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-700 transition-colors"

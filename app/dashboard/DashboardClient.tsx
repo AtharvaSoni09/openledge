@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import USMap from '@/components/map/USMap';
 import Header from '@/components/layout/header';
+import SettingsModal from '@/components/ui/SettingsModal';
 import {
   Target,
   Globe,
@@ -112,6 +113,7 @@ export default function DashboardClient({
   interests = [],
 }: Props) {
   const router = useRouter();
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [starred, setStarred] = useState<string[]>(initialStarredIds);
   const [starredBills, setStarredBills] = useState<Bill[]>(initialStarred);
   const [matchedBills] = useState<Bill[]>(initialMatched);
@@ -285,9 +287,43 @@ export default function DashboardClient({
 
   const updatedStarredCount = starredBills.filter((b) => b.has_update).length;
 
+  const handleStateClick = async (stateCode: string) => {
+    if (addingToInterests) return;
+    setAddingToInterests(true);
+    // Optional: Show toast "Scanning [State] for relevant bills..."
+
+    try {
+      const res = await fetch('/api/explore/state', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: subscriber.email, state: stateCode }),
+      });
+      const data = await res.json();
+
+      if (data.success && data.added > 0) {
+        // Refresh to show new matches
+        router.refresh();
+      } else {
+        // Optional: Show "No relevant bills found in [State]"
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setAddingToInterests(false);
+    }
+  };
+
   return (
     <div className="h-screen flex flex-col bg-white">
-      <Header email={subscriber.email} />
+      <Header email={subscriber.email} onOpenSettings={() => setIsSettingsOpen(true)} />
+
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        currentGoal={subscriber.orgGoal}
+        currentState={subscriber.stateFocus}
+        email={subscriber.email}
+      />
 
       <div className="flex-1 flex overflow-hidden">
         {/* ── LEFT SIDEBAR: Important Bills ─────────────── */}
@@ -439,9 +475,18 @@ export default function DashboardClient({
             <div className="w-full max-w-md">
               <USMap
                 selected={subscriber.stateFocus === 'US' ? null : subscriber.stateFocus}
-                interactive={false}
+                interactive={true}
+                onSelect={handleStateClick}
                 highlightAll={subscriber.stateFocus === 'US'}
               />
+              {addingToInterests && (
+                <div className="absolute inset-0 flex items-center justify-center bg-white/50 backdrop-blur-sm z-10">
+                  <div className="bg-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2 border border-zinc-100">
+                    <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+                    <span className="text-xs font-semibold text-zinc-700">Scanning state legislation...</span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
