@@ -64,16 +64,16 @@ export async function GET(req: NextRequest) {
         }
 
         // ========================
-        //  STATE BILLS
+        //  STATE BILLS (DISABLED — federal only for now)
         // ========================
-        console.log('Stage 2: Fetching state bills for subscriber states...');
-        const { data: stateFocusRows } = await (supabase as any)
-            .from('subscribers')
-            .select('state_focus')
-            .not('state_focus', 'is', null);
-
-        const uniqueStates: string[] = [...new Set<string>((stateFocusRows || []).map((r: any) => r.state_focus as string))];
-        console.log(`Subscriber states: ${uniqueStates.join(', ') || 'none'}`);
+        // console.log('Stage 2: Fetching state bills for subscriber states...');
+        // const { data: stateFocusRows } = await (supabase as any)
+        //     .from('subscribers')
+        //     .select('state_focus')
+        //     .not('state_focus', 'is', null);
+        //
+        // const uniqueStates: string[] = [...new Set<string>((stateFocusRows || []).map((r: any) => r.state_focus as string))];
+        // console.log(`Subscriber states: ${uniqueStates.join(', ') || 'none'}`);
 
         interface SimpleBill {
             bill_id: string;
@@ -102,32 +102,32 @@ export async function GET(req: NextRequest) {
             }
         }
 
-        // Add state bills
-        for (const stateCode of uniqueStates) {
-            const stateBills = await fetchStateBills(stateCode, 5);
-            for (const sb of stateBills) {
-                const syntheticId = `STATE-${sb.state}-${sb.bill_number.replace(/\s/g, '')}`;
-                if (!existingSet.has(syntheticId)) {
-                    allBillsToProcess.push({
-                        bill_id: syntheticId,
-                        title: sb.title,
-                        congress: 0,
-                        originChamber: sb.state,
-                        type: 'STATE',
-                        updateDate: sb.last_action_date,
-                        url: sb.url,
-                        congressGovUrl: sb.url,
-                        introducedDate: sb.status_date,
-                        latestAction: { actionDate: sb.last_action_date, text: sb.last_action },
-                        sponsors: [],
-                        cosponsors: [],
-                        source: 'state',
-                        state_code: sb.state,
-                        doc_id: sb.doc_id,
-                    });
-                }
-            }
-        }
+        // STATE BILLS DISABLED — uncomment to re-enable LegiScan
+        // for (const stateCode of uniqueStates) {
+        //     const stateBills = await fetchStateBills(stateCode, 5);
+        //     for (const sb of stateBills) {
+        //         const syntheticId = `STATE-${sb.state}-${sb.bill_number.replace(/\s/g, '')}`;
+        //         if (!existingSet.has(syntheticId)) {
+        //             allBillsToProcess.push({
+        //                 bill_id: syntheticId,
+        //                 title: sb.title,
+        //                 congress: 0,
+        //                 originChamber: sb.state,
+        //                 type: 'STATE',
+        //                 updateDate: sb.last_action_date,
+        //                 url: sb.url,
+        //                 congressGovUrl: sb.url,
+        //                 introducedDate: sb.status_date,
+        //                 latestAction: { actionDate: sb.last_action_date, text: sb.last_action },
+        //                 sponsors: [],
+        //                 cosponsors: [],
+        //                 source: 'state',
+        //                 state_code: sb.state,
+        //                 doc_id: sb.doc_id,
+        //             });
+        //         }
+        //     }
+        // }
 
         if (allBillsToProcess.length === 0) {
             return NextResponse.json({ message: 'No new bills to process.' }, { status: 200 });
