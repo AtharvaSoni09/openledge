@@ -699,13 +699,7 @@ function LeftBillRow({
     : false;
 
   return (
-    <div className="group relative border-b border-zinc-50 hover:bg-zinc-50/50 transition-colors">
-      {isNew && (
-        <div className="bg-blue-500 text-white text-[9px] font-bold uppercase tracking-wider px-4 py-1 flex items-center gap-1.5">
-          <Sparkles className="w-3 h-3" />
-          New match
-        </div>
-      )}
+    <div className={`group relative border-b border-zinc-50 hover:bg-zinc-50/50 transition-colors ${isNew ? 'border-l-[3px] border-l-blue-500 bg-blue-50/30' : ''}`}>
       <div className="flex items-start gap-2 px-4 py-3">
         <button
           onClick={(e) => {
