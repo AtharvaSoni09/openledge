@@ -476,8 +476,7 @@ export default function DashboardClient({
             <div className="w-full max-w-md">
               <USMap
                 selected={subscriber.stateFocus === 'US' ? null : subscriber.stateFocus}
-                interactive={true}
-                onSelect={handleStateClick}
+                interactive={false}
                 highlightAll={subscriber.stateFocus === 'US'}
               />
               {addingToInterests && (
