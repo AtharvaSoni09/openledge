@@ -99,6 +99,7 @@ export default async function DashboardPage() {
         match_why: match.why_it_matters,
         match_implications: match.implications,
         match_source: extractSource(match.summary, subscriber.org_goal),
+        match_created_at: match.created_at,
       });
     }
   }

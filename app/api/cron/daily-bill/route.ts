@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/lib/supabase';
 import { fetchRecentBills, fetchBillText } from '@/lib/agents/congress';
-import { fetchStateBills } from '@/lib/agents/legiscan';
+import { fetchStateBills, fetchBillTextFromLegiScan } from '@/lib/agents/legiscan';
 import { fetchSponsorFunds } from '@/lib/agents/openfec';
 import { fetchNewsContext } from '@/lib/agents/newsdata';
 import { fetchPolicyResearch } from '@/lib/agents/exa';
@@ -90,6 +90,7 @@ export async function GET(req: NextRequest) {
             cosponsors?: any[];
             source: 'federal' | 'state';
             state_code: string | null;
+            doc_id?: number | null;
         }
 
         const allBillsToProcess: SimpleBill[] = [];
@@ -122,6 +123,7 @@ export async function GET(req: NextRequest) {
                         cosponsors: [],
                         source: 'state',
                         state_code: sb.state,
+                        doc_id: sb.doc_id,
                     });
                 }
             }
@@ -151,7 +153,7 @@ export async function GET(req: NextRequest) {
                 return null;
             }
 
-            // Fetch full bill text — skip if not available
+            // Fetch full bill text — skip federal if not available, try LegiScan for state
             let billFullText: string | null = null;
             if (bill.source === 'federal') {
                 billFullText = await fetchBillText(bill.bill_id);
@@ -161,6 +163,15 @@ export async function GET(req: NextRequest) {
                     return null;
                 }
                 console.log(`Got ${billFullText.length} chars of text for ${bill.bill_id}`);
+            } else if (bill.source === 'state') {
+                // Try to fetch state bill text from LegiScan using doc_id
+                const docId = bill.doc_id;
+                if (docId) {
+                    billFullText = await fetchBillTextFromLegiScan(docId);
+                    if (billFullText) {
+                        console.log(`Got ${billFullText.length} chars of LegiScan text for ${bill.bill_id}`);
+                    }
+                }
             }
 
             // Research phase

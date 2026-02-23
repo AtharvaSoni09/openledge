@@ -21,6 +21,7 @@ export interface StateBill {
   last_action: string;
   last_action_date: string;
   session_id: number;
+  doc_id: number | null;  // newest text doc_id for getBillText
 }
 
 const BASE = 'https://api.legiscan.com';
@@ -32,6 +33,46 @@ function getKey(): string | null {
     return null;
   }
   return key;
+}
+
+/**
+ * Fetch the full text of a bill using its doc_id.
+ * Returns decoded plain text, or null if unavailable.
+ */
+export async function fetchBillTextFromLegiScan(docId: number): Promise<string | null> {
+  const key = getKey();
+  if (!key) return null;
+
+  try {
+    const url = `${BASE}/?key=${key}&op=getBillText&id=${docId}`;
+    console.log(`LEGISCAN: Fetching bill text for doc_id ${docId}`);
+    const res = await fetch(url);
+    if (!res.ok) return null;
+
+    const data = await res.json();
+    if (data.status !== 'OK' || !data.text?.doc) return null;
+
+    // doc is base64-encoded text
+    const decoded = Buffer.from(data.text.doc, 'base64').toString('utf-8');
+
+    // Strip HTML tags if mime is text/html
+    const mime = data.text.mime || '';
+    if (mime.includes('html')) {
+      return decoded
+        .replace(/<[^>]+>/g, ' ')   // strip tags
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/\s{2,}/g, ' ')
+        .trim();
+    }
+
+    return decoded.trim();
+  } catch (error) {
+    console.error(`LEGISCAN: Failed to fetch text for doc_id ${docId}:`, error);
+    return null;
+  }
 }
 
 /**
@@ -98,6 +139,7 @@ export async function fetchStateBills(
           last_action: entry.last_action || '',
           last_action_date: entry.last_action_date || '',
           session_id: sessionId,
+          doc_id: b.texts?.length ? b.texts[b.texts.length - 1].doc_id : null,
         });
       } catch (e) {
         console.error(`LEGISCAN: Failed to fetch detail for bill ${entry.bill_id}:`, e);
@@ -155,6 +197,7 @@ export async function searchStateBills(
       last_action: e.last_action || '',
       last_action_date: e.last_action_date || '',
       session_id: 0,
+      doc_id: null, // search results don't include doc_id
     }));
   } catch (error) {
     console.error('LEGISCAN: Search error:', error);

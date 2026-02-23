@@ -43,6 +43,7 @@ interface Bill {
   match_why?: string;
   match_implications?: string;
   match_source?: string;
+  match_created_at?: string;
   has_update?: boolean;
 }
 
@@ -693,9 +694,18 @@ function LeftBillRow({
   hasMatch: boolean;
 }) {
   const score = bill.match_score;
+  const isNew = bill.match_created_at
+    ? Date.now() - new Date(bill.match_created_at).getTime() < 24 * 60 * 60 * 1000
+    : false;
 
   return (
     <div className="group relative border-b border-zinc-50 hover:bg-zinc-50/50 transition-colors">
+      {isNew && (
+        <div className="bg-blue-500 text-white text-[9px] font-bold uppercase tracking-wider px-4 py-1 flex items-center gap-1.5">
+          <Sparkles className="w-3 h-3" />
+          New match
+        </div>
+      )}
       <div className="flex items-start gap-2 px-4 py-3">
         <button
           onClick={(e) => {

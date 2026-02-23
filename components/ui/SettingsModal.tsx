@@ -46,6 +46,19 @@ export default function SettingsModal({
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'Failed to update settings');
 
+            // If goal changed, trigger re-matching against existing bills
+            if (data.goalChanged) {
+                try {
+                    await fetch('/api/match-existing', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email }),
+                    });
+                } catch {
+                    // Non-fatal: matches will populate over time via cron
+                }
+            }
+
             // Refresh to reflect changes
             router.refresh();
             onClose();
