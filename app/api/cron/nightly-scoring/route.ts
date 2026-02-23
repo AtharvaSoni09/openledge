@@ -65,10 +65,9 @@ export async function GET(req: NextRequest) {
             (existingMatches || []).map((m: any) => `${m.subscriber_id}:${m.legislation_id}`)
         );
 
-        // 4. Score bills against subscribers
+        // 4. Score bills against subscribers — SEQUENTIAL to avoid rate limits
         let newMatches = 0;
         let scored = 0;
-        const BATCH_SIZE = 5;
 
         for (const sub of subscribers) {
             // Timeout safeguard
@@ -89,9 +88,7 @@ export async function GET(req: NextRequest) {
 
             // Filter bills not yet matched for this subscriber
             const billsToScore = recentBills.filter((b: any) => {
-                // Skip if already matched
                 if (matchSet.has(`${sub.id}:${b.id}`)) return false;
-                // For state bills, only score if subscriber watches that state or national
                 if (b.source === 'state' && b.state_code && sub.state_focus !== 'US' && sub.state_focus !== b.state_code) {
                     return false;
                 }
@@ -100,22 +97,16 @@ export async function GET(req: NextRequest) {
 
             if (billsToScore.length === 0) continue;
 
-            // Score in batches
-            for (let i = 0; i < billsToScore.length; i += BATCH_SIZE) {
-                const batch = billsToScore.slice(i, i + BATCH_SIZE);
+            console.log(`Scoring ${billsToScore.length} bills for subscriber ${sub.id}`);
 
-                const results = await Promise.allSettled(
-                    batch.map(async (bill: any) => {
-                        const billText = bill.tldr || bill.title;
-                        const result = await scoreBillForGoal(bill.title, billText, combinedGoal);
-                        scored++;
-                        return { bill, result };
-                    })
-                );
+            // Score ONE bill at a time with delay
+            for (const bill of billsToScore) {
+                if (Date.now() - startTime > 250000) break;
 
-                for (const res of results) {
-                    if (res.status !== 'fulfilled') continue;
-                    const { bill, result } = res.value;
+                try {
+                    const billText = bill.tldr || bill.title;
+                    const result = await scoreBillForGoal(bill.title, billText, combinedGoal);
+                    scored++;
 
                     if (result.match_score > 0) {
                         await (supabase as any)
@@ -131,13 +122,20 @@ export async function GET(req: NextRequest) {
                             }, { onConflict: 'subscriber_id,legislation_id' });
                         newMatches++;
                     }
+                } catch (err: any) {
+                    console.error(`Score error for bill ${bill.bill_id}:`, err.message);
+                    // If rate limited, wait longer and continue
+                    if (err.message?.includes('rate') || err.message?.includes('429')) {
+                        await new Promise(r => setTimeout(r, 10000));
+                    }
                 }
 
-                // Small delay between batches
-                if (i + BATCH_SIZE < billsToScore.length) {
-                    await new Promise(r => setTimeout(r, 1000));
-                }
+                // 2s delay between each scoring call
+                await new Promise(r => setTimeout(r, 2000));
             }
+
+            // 3s pause between subscribers
+            await new Promise(r => setTimeout(r, 3000));
         }
 
         const duration = (Date.now() - startTime) / 1000;
